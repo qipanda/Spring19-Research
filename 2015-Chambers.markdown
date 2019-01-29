@@ -1,7 +1,12 @@
 # Paper Info
-2015 - Chambers
-Identifying Political Sentiment between Nation States with Social Media
+2015 - Chambers\
+Identifying Political Sentiment between Nation States with Social Media\
 Accessed as paper referencing 2013 O'Connor
+
+# Summary
+Used a combination of filters and linguistic features to find mentions of country
+actors in tweets and performed a neg,neut,pos labelled sentiment analysis on the data.
+Results were decent (60-80% accuracies).
 
 # Misc. keywords
 - antecedent: preceding in time/logical order

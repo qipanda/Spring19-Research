@@ -1,9 +1,9 @@
 # Paper info
-2013 - O'Connor, Stewart, Smith
-Learning to Extract International Relations from Political Context
+2013 - O'Connor, Stewart, Smith\
+Learning to Extract International Relations from Political Context\
 Accessed as core paper
 
-# Purpose of paper
+# Summary
 Created a probabilistic unsupervised model which extracts major political actors
 from news corpora. Performance is assessed on recovering expert-assigned event
 class valences and detecting real-world conflict. Ideally reflects relevant
