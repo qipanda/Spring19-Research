@@ -7,3 +7,6 @@ Format: [Year][First Author],[Short Description of Paper]
     based on predicate pathes
     - *2015 Chambers*, Public sentiment on countries based on tweets
     - *2015 Wu*, Storybase events knowledge base from Wikipedia + News Articles
+    - *2014 Ben-Ami*, Showed importance of relevancy detection in sentiment analysis
+        and that classification methods + document level features about entities
+        were best for relevancy detection
