@@ -1,6 +1,6 @@
 # Paper info
-2014 - Zvi Ben-Ami, Ronene Feldman, Binyamin Rosenfeld
-Entities' Sentiment Relevance
+2014 - Zvi Ben-Ami, Ronene Feldman, Binyamin Rosenfeld\
+Entities' Sentiment Relevance\
 Accessed as paper referencing 2013 O'Connor
 
 # Summary

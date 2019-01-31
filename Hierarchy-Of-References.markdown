@@ -10,3 +10,5 @@ Format: [Year][First Author],[Short Description of Paper]
     - *2014 Ben-Ami*, Showed importance of relevancy detection in sentiment analysis
         and that classification methods + document level features about entities
         were best for relevancy detection
+    - *2016 Roberts*, Discusses multi-modality in topic models and practical advice
+        relating to applying them
