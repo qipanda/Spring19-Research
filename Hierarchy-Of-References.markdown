@@ -12,3 +12,5 @@ Format: [Year][First Author],[Short Description of Paper]
         were best for relevancy detection
     - *2016 Roberts*, Discusses multi-modality in topic models and practical advice
         relating to applying them
+    - *2017 Potnoff*, Developed tools for getting high level snapshots of underground
+        forums based on the text of forum posts
