@@ -35,3 +35,6 @@
 - With header data + coup data, are news articles an indicator of incoming coup in
     the respective country? If so, is there a linguistic shift in the way the country
     is mentioned in the news vs. normally? Does the frequency increase?
+- How do other countries interact with the couping country leading up the coup? Is 
+    there a notable trend traceable linguistically from news articles/news headers?
+-

@@ -16,3 +16,5 @@ Format: [Year][First Author],[Short Description of Paper]
         forums based on the text of forum posts
 - *2011 Westveld*, Used linear models to model dyadic trade/conflict levels between 
     countries using things like GDP and cooperation in conflict
+- *1981 RHT O'Kane* Simple linear model with GDP predicting if a coup will occur in a country for
+a set timeframe
