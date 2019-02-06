@@ -28,4 +28,10 @@
             of newsrooms of 38 major news publication 1998-2017
             https://yoavartzi.com/pub/gna-naacl.2018.pdf
     - Political "score" Data:
-        - Polity IV: 
+        - Polity IV: Coup D'Etat dataset (all coups from 1946-2017 from major countries
+            including exact date and success score) 
+
+# Feb 6th 2019
+- With header data + coup data, are news articles an indicator of incoming coup in
+    the respective country? If so, is there a linguistic shift in the way the country
+    is mentioned in the news vs. normally? Does the frequency increase?
