@@ -1,0 +1,22 @@
+- go crazy with embeddings on single country
+- democracy scores? freedom of speach?
+- Xing Hua
+- NYT 
+- timeframes
+- nexus uni UMass Amhersto
+
+- how do embeddings relate to democracy scores
+- Bagozzi 2012 -> reference
+- Chambers Latent topic vs Entity level?
+- real world score (textual correlate, e.g. when country name mentioned, what is
+        corresponding real world thing? for uni and dyadic?)
+- What Data Set to use 
+- What country level datasets I can find? Timeframe
+        - Do they intersect Gigaword and LDC-NYT (from 2013)
+                - timestamp
+                - text
+        - Social Media: Reddit /r/worldnews 
+        
+ - Sean Gerrish 2011 NIPS
+        - Sentiment Analysis (correlates to MID)
+
