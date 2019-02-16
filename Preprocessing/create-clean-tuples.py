@@ -4,7 +4,7 @@ import pickle
 import string
 import re
 
-def createCleanTuples(line, queue, translator, countryforms):
+def createCleanTuples(idx, line, queue, translator, countryforms):
     date, text = line.split(",")
     
     # Get rid of punctuation and gaurentee lowercase
@@ -34,7 +34,7 @@ def createCleanTuples(line, queue, translator, countryforms):
     if len(entities) > 1:
         for c1, c2 in combinations(
             [(entities[i], contexts[i], contexts[i+1]) for i in range(len(entities))], 2):
-            queue.put("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(date, c1[0], c2[0], c1[1], c1[2], c2[1], c2[2]))
+            queue.put((idx,"{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(date, c1[0], c2[0], c1[1], c1[2], c2[1], c2[2])))
 
 def listener(queue, header):
     with open("../Data/abcnews-clean.txt", "w") as clean_data:
@@ -42,7 +42,8 @@ def listener(queue, header):
         clean_data.write(header)
 
         while True:
-            msg = queue.get()
+            idx, msg = queue.get()
+            print(idx)
             if msg == "KILL":
                 break
             clean_data.write(msg)
@@ -70,9 +71,8 @@ if __name__ == "__main__":
     watcher = pool.apply_async(listener, (queue, header,))
 
     results = []
-    for i, line in enumerate(lines[1:]):
-        print("{} of {}".format(i, len(lines)))
-        result = pool.apply_async(createCleanTuples, (line, queue, translator, countryforms))
+    for idx, line in enumerate(lines[1:]):
+        result = pool.apply_async(createCleanTuples, (idx, line, queue, translator, countryforms))
         results.append(result)
 
     # Kill queue once all is done
