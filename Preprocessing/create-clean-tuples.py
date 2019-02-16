@@ -1,31 +1,14 @@
 from itertools import combinations
+import multiprocessing as mp
 import pickle
 import string
 import re
 
-# import ipdb; ipdb.set_trace()
-# with open("../Data/clean-country-pair-contexts.pickle", "rb") as handle:
-#     test = pickle.load(handle)
-
-# Load countryforms to replace the forms in headlines
-with open("../Data/countryforms.pickle", "rb") as handle:
-    countryforms = pickle.load(handle)
-
-# Load headlines from abc
-text_file = open("../Data/abcnews-date-text.csv")
-lines = text_file.readlines()
-
-# Create translator for filtering out punctuation
-translator = str.maketrans("", "", string.punctuation)
-
-# Process each line into proper tuple (ignore header row)
-clean_tuples = []
-for i, line in enumerate(lines[1:]):
-    print("{} of {}".format(i, len(lines[1:])))
+def createCleanTuples(line, queue, translator, countryforms):
     date, text = line.split(",")
     
-    # Get rid of '\n' char in text and get rid of punctuation
-    text = text.strip("\n").translate(translator)
+    # Get rid of punctuation and gaurentee lowercase
+    text = text.translate(translator).lower()
 
     # Replace string forms of countries with standard form
     for key, val in countryforms.items():
@@ -50,8 +33,49 @@ for i, line in enumerate(lines[1:]):
     # If at least two entities, append them to clean data with l and r contexts
     if len(entities) > 1:
         for c1, c2 in combinations(
-            [(date, entities[i], contexts[i], contexts[i+1]) for i in range(len(entities))], 2):
-            clean_tuples.append((c1, c2))
+            [(entities[i], contexts[i], contexts[i+1]) for i in range(len(entities))], 2):
+            queue.put("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(date, c1[0], c2[0], c1[1], c1[2], c2[1], c2[2]))
 
-with open("../Data/clean-country-pair-contexts.pickle", "wb") as handle:
-    pickle.dump(clean_tuples, handle)
+def listener(queue, header):
+    with open("../Data/abcnews-clean.txt", "w") as clean_data:
+        # Write header
+        clean_data.write(header)
+
+        while True:
+            msg = queue.get()
+            if msg == "KILL":
+                break
+            clean_data.write(msg)
+            clean_data.flush()
+
+if __name__ == "__main__":
+    # Load headlines from abc, split them up
+    text_file = open("../Data/abcnews-date-text.csv")
+    lines = [line for line in text_file.read().splitlines()]
+
+    # Load proper countryforms to replace the forms in headlines
+    with open("../Data/countryforms.pickle", "rb") as handle:
+        countryforms = pickle.load(handle)
+
+    # Create translator for filtering out punctuation
+    translator = str.maketrans("", "", string.punctuation)
+
+    # Start manager, queue and pool
+    manager = mp.Manager()
+    queue = manager.Queue()
+    pool = mp.Pool(8)
+
+    # Start listener
+    header = "date\tc1\tc2\tc1_ctxt_l\tc1_ctxt_r\tc2_ctxt_l\tc2_ctxt_r\n"
+    watcher = pool.apply_async(listener, (queue, header,))
+
+    results = []
+    for i, line in enumerate(lines[1:100]):
+        print("{} of {}".format(i, len(lines)))
+        result = pool.apply_async(createCleanTuples, (line, queue, translator, countryforms))
+        results.append(result)
+
+    # Kill queue once all is done
+    [result.wait() for result in results]
+    queue.put("KILL")
+    pool.close()
