@@ -70,7 +70,7 @@ if __name__ == "__main__":
     watcher = pool.apply_async(listener, (queue, header,))
 
     results = []
-    for i, line in enumerate(lines[1:100]):
+    for i, line in enumerate(lines[1:]):
         print("{} of {}".format(i, len(lines)))
         result = pool.apply_async(createCleanTuples, (line, queue, translator, countryforms))
         results.append(result)
