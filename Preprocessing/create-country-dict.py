@@ -1,3 +1,5 @@
+import pickle
+
 # 1.) Import country list and parse into lines
 country_list = open("../Data/countrylist.txt")
 lines = country_list.readlines()
@@ -13,12 +15,13 @@ for line in lines:
     country_form = split[1]
 
     # remove '\n' char, remove ()'s, replace _ with space
-    country_form = country_form.replace("\n", "")\
+    country_form = country_form.strip("\n")\
         .replace("(", "")\
         .replace(")", "")\
         .replace("_", " ")\
 
-    country_forms[country_form] = split[0]
+    # adding regex to match along whitespace or beg/end of string
+    country_forms["(^| )" + country_form.lower() + "( |$)"] = " " + split[0] + " "
 
-
-
+with open("../Data/countryforms.pickle", "wb") as handle:
+    pickle.dump(country_forms, handle)
