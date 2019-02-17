@@ -35,7 +35,7 @@ def createCleanTuples(idx, line, queue, translator, countryforms):
         for c1, c2 in combinations(
             [(entities[i], contexts[i], contexts[i+1]) for i in range(len(entities))], 2):
             # Ensure alphabetical c1, c2 ordering
-            if c1 > c2:
+            if c1[0] > c2[0]:
                 c1, c2 = c2, c1
             queue.put((idx,"{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(date, c1[0], c2[0], c1[1], c1[2], c2[1], c2[2])))
 
