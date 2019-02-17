@@ -32,6 +32,8 @@ def createCleanTuples(idx, line, queue, translator, countryforms):
 
     # If at least two entities, append them to clean data with l and r contexts
     if len(entities) > 1:
+        # Sort to ensure consistent tuple orderings for (c1,c2)
+        entites.sort()
         for c1, c2 in combinations(
             [(entities[i], contexts[i], contexts[i+1]) for i in range(len(entities))], 2):
             queue.put((idx,"{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(date, c1[0], c2[0], c1[1], c1[2], c2[1], c2[2])))
