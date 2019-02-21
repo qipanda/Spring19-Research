@@ -1,7 +1,7 @@
 import pickle
 
 # 1.) Import country list and parse into lines
-country_list = open("../Data/countrylist.txt")
+country_list = open("../Data/TABARI/countrylist.txt")
 lines = country_list.readlines()
 
 # 2.) Create {countryform:countrycode} dictionary
@@ -21,7 +21,7 @@ for line in lines:
         .replace("_", " ")\
 
     # adding regex to match along whitespace or beg/end of string
-    country_forms["(^| )" + country_form.lower() + "( |$)"] = " " + split[0] + " "
+    country_forms[country_form.lower()] = split[0]
 
-with open("../Data/countryforms.pickle", "wb") as handle:
+with open("../Data/TABARI/countryforms.pickle", "wb") as handle:
     pickle.dump(country_forms, handle)
