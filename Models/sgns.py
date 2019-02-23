@@ -17,17 +17,19 @@ class SGNS(torch.nn.Module):
         self.w_embeds = torch.nn.Embedding(len(w_to_idx), self.embedding_dim)
 
     def forward(self, c, w):
-        prod = torch.dot(self.c_embeds[self.c_to_idx[c]], self.w_embeds[self.w_to_idx[w]])
-        return torch.sigmoid(prod)
+        c = torch.tensor([self.c_to_idx[c]])
+        w = torch.tensor([self.w_to_idx[w]])
+        prod = torch.dot(self.c_embeds(c).view(-1), self.w_embeds(w).view(-1))
+        prob = torch.sigmoid(prod)
+        return prob
 
 if __name__ == "__main__":
     # Load pos and neg training data
-    data_pos = pd.read_csv("../Data/ABC-News/abc-comp-pos-subsample.txt", sep="\t")
-    data_neg = pd.read_csv("../Data/ABC-News/abc-comp-neg-subsample.txt", sep="\t")
+    data = pd.read_csv("../Data/ABC-News/abcnews-sgns-processed.txt", sep="\t")
 
     # Get country pair vocab and word vocab
-    country_pair_vocab = (data_pos["c1"] + "-" + data_pos["c2"]).unique()
-    word_vocab = data_pos["word"].unique()
+    country_pair_vocab = (data["c1"] + "-" + data["c2"]).unique()
+    word_vocab = data["word"].unique()
 
     # Create mappings from country pairs and context words to unique integers
     c_to_idx = {}
@@ -37,7 +39,33 @@ if __name__ == "__main__":
     for idx, w in enumerate(word_vocab):
         w_to_idx[w] = idx
 
-    import ipdb; ipdb.set_trace()
     # Initialize the model
     embedding_dim = 5
     model = SGNS(embedding_dim, c_to_idx, w_to_idx)
+
+    # Train the model
+    epochs = 10
+    loss_fn = torch.nn.BCELoss(reduction="none")
+    optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
+
+    for epoch in range(epochs):
+        total_loss = 0.0
+        for i, row in data.iterrows():
+            # 1.) Before new datum, need zero old gradient instance
+            model.zero_grad()
+
+            # 2.) Forward pass to get prob of positive word
+            pos_prob = model(row["c1"] + "-" + row["c2"], row["word"])
+
+            # 3.) Compute loss function
+            loss = loss_fn(pos_prob, torch.tensor(row["pos"]))
+
+            # 4.) Back pass to update gradient
+            loss.backward()
+            optimizer.step()
+
+            # 5.) Log the loss
+            total_loss += loss.item()
+
+        # Print loss
+        print("epoch:{} | loss:{}".format(epoch, total_loss))
