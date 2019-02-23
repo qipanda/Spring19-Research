@@ -69,3 +69,6 @@ if __name__ == "__main__":
 
         # Print loss
         print("epoch:{} | loss:{}".format(epoch, total_loss))
+
+    # Save trained model
+    torch.save(model, "../Data/ABC-News/sgns-v1.pt")
