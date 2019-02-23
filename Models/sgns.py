@@ -52,7 +52,6 @@ if __name__ == "__main__":
     for epoch in range(epochs):
         total_loss = 0.0
         for i, row in data.iterrows():
-            print("epoch: {}| row: {}".format(epoch, i))
             # 1.) Before new datum, need zero old gradient instance
             model.zero_grad()
 
