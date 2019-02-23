@@ -93,7 +93,7 @@ def writeCompleteTuple(idx: int, line: Tuple[str, str], queue: mp.Queue,
     context = ""
     for i, token in enumerate(split_headline):
         if token in countryforms:
-            entities.append(token)
+            entities.append(countryforms[token])
         else:
             context += token + ","
     context = context.strip(",")
