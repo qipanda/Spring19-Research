@@ -44,6 +44,7 @@ if __name__ == "__main__":
     model = SGNS(embedding_dim, c_to_idx, w_to_idx)
 
     # Train the model
+    torch.set_num_threads(10)
     epochs = 10
     loss_fn = torch.nn.BCELoss(reduction="none")
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
@@ -51,6 +52,7 @@ if __name__ == "__main__":
     for epoch in range(epochs):
         total_loss = 0.0
         for i, row in data.iterrows():
+            print("epoch: {}| row: {}".format(epoch, i))
             # 1.) Before new datum, need zero old gradient instance
             model.zero_grad()
 
