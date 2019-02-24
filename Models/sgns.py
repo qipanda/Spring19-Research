@@ -2,6 +2,7 @@ from typing import Dict
 import numpy as np
 import pandas as pd
 import torch
+import pickle
 
 class SGNS(torch.nn.Module):
     def __init__(self, embedding_dim: int, c_to_idx: Dict[str, int],
@@ -24,20 +25,7 @@ class SGNS(torch.nn.Module):
         return prob
 
 if __name__ == "__main__":
-    # Load pos and neg training data
-    data = pd.read_csv("../Data/ABC-News/abcnews-sgns-processed.txt", sep="\t")
-
-    # Get country pair vocab and word vocab
-    country_pair_vocab = (data["c1"] + "-" + data["c2"]).unique()
-    word_vocab = data["word"].unique()
-
-    # Create mappings from country pairs and context words to unique integers
-    c_to_idx = {}
-    w_to_idx = {}
-    for idx, c in enumerate(country_pair_vocab):
-        c_to_idx[c] = idx
-    for idx, w in enumerate(word_vocab):
-        w_to_idx[w] = idx
+    # TODO load data after preprocessing
 
     # Initialize the model
     embedding_dim = 5

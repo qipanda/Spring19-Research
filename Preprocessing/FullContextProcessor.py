@@ -8,7 +8,8 @@ class FullContextProcessor:
         date (yyyymmdd) \t c1 (XYZ) \t c2 (XYZ) \t ctxt (w1,w2,...,wn) 
     """
     def __init__(self, data_fpath: str, sep: str):
-        self.df = pd.read_csv(data_fpath, sep)
+        self.df = pd.read_csv(data_fpath, sep).loc[:400, :]
+        self.twoway_maps = {}
 
     def writeDf(self, fpath: str, sep: str) -> None:
         with open(fpath, "w") as f:
@@ -84,11 +85,32 @@ class FullContextProcessor:
 
                 row[colname] = negcolval
                 self.df = self.df.append(row)
-             
-if __name__ == "__main__":
-    fcp = FullContextProcessor("../Data/ABC-News/abcnews-complete-ctxt.txt", "\t")
-    fcp.df.loc[:, "pos"] = 1
-    fcp.stackSepCol(colname="ctxt", sep=",", newcolname="word")
-    fcp.subsample(t=1e-5, subcolname="word")
-    fcp.generateNegSamples(k=5, alpha=0.75, colname="word", negcolname="pos")
-    fcp.writeDf("../Data/ABC-News/abcnews-sgns-processed.txt", "\t")
+
+    def combineCols(self, col1: str, col2: str, sep: str) -> None:
+        """
+        combine two cols to make a new col
+        """
+        self.df.loc[:, col1+sep+col2] = self.df.loc[:, col1] + sep + self.df.loc[:, col2]
+
+    def removeByNanCol(self, colname: str) -> None:
+        "remove rows from self.df where colname's value is nan"
+        self.df = self.df.loc[~self.df.loc[:, colname].isna(), :]
+
+    def removeByNumericCol(self, colname: str) -> None:
+        """
+        remove rows from self.df where colname's value is numeric
+        """
+        self.df = self.df.loc[~self.df.loc[:, colname].apply(lambda x: x.isnumeric()), :]
+
+    def createTwoWayMap(self, colname: str, savename: str) -> None:
+        """
+        For a given column, assign each unique value an index number from 0 to
+        len-1 and save both dict maps
+        """
+        col_to_idx = {}
+        idx_to_col = {}
+        for idx, col_val in enumerate(self.df.loc[:, colname].unique().tolist()):
+            col_to_idx[col_val] = idx
+            idx_to_col[idx] = col_val
+            
+        self.twoway_maps[colname] = (col_to_idx, idx_to_col)
