@@ -8,7 +8,7 @@ class FullContextProcessor:
         date (yyyymmdd) \t c1 (XYZ) \t c2 (XYZ) \t ctxt (w1,w2,...,wn) 
     """
     def __init__(self, data_fpath: str, sep: str):
-        self.df = pd.read_csv(data_fpath, sep).loc[:400, :]
+        self.df = pd.read_csv(data_fpath, sep)
         self.twoway_maps = {}
 
     def writeDf(self, fpath: str, sep: str) -> None:
