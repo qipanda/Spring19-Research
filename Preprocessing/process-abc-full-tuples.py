@@ -9,6 +9,11 @@ fcp.removeByNumericCol("word")
 fcp.combineCols("c1", "c2", "-")
 fcp.subsample(t=1e-5, subcolname="word")
 fcp.generateNegSamples(k=10, alpha=0.75, colname="word", negcolname="pos")
-
-# Pickle object to keep twoway maps and save dataframe as txt
 fcp.writeDf("../Data/ABC-News/abcnews-sgns-processed.txt", "\t")
+
+# Create mappings and save indexed version
+fcp.createTwoWayMap(colname="c1-c2")
+fcp.convertColToIdx(colname="c1-c2")
+fcp.createTwoWayMap(colname="word")
+fcp.convertColToIdx(colname="word")
+fcp.writeDf(fpath="../Data/ABC-News/abcnews-sgns-processed-idx.txt", sep="\t")

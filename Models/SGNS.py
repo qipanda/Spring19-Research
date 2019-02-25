@@ -72,13 +72,17 @@ class SGNSClassifier(BaseEstimator, ClassifierMixin):
         return self.model_(torch.tensor(X[:, 0]), torch.tensor(X[:, 1]))\
             .detach().numpy() > self.pred_thresh
 
+    def predict_proba(self, X: np.ndarray) -> np.ndarray:
+        """
+        Return list of probabilitic predictions
+        """
+        return self.model_(torch.tensor(X[:, 0]), torch.tensor(X[:, 1]))\
+            .detach().numpy()
+
     def score(self, X: np.ndarray, y: np.ndarray) -> float:
         """
-        NOTE: scikit-learn expects this to return average accuracy when using
-        GirdsearchCV, but I want to evaluate based on BCE loss
-
-        Return [BCE_reduction] BCE loss based on X and y
+        Return accuracy average
         """
         predictions = self.model_(torch.tensor(X[:, 0]), torch.tensor(X[:, 1]))
-        loss = self.loss_fn(predictions, torch.tensor(y, dtype=torch.float))
-        return loss.item() 
+        y_pred = self.predict(X)
+        return np.mean(y_pred == y)

@@ -10,10 +10,11 @@ from Preprocessing.FullContextProcessor import FullContextProcessor
 import pandas as pd
 from sklearn.model_selection import GridSearchCV
 
-# Load data from pickled processor and create two-way maps
-proc = FullContextProcessor("../Data/ABC-News/abcnews-sgns-processed.txt", sep="\t")
-proc.createTwoWayMap(colname="c1-c2")
-proc.createTwoWayMap(colname="word")
+# Load data from indexed version
+fcp = FullContextProcessor("../Data/ABC-News/abcnews-sgns-processed-idx.txt", sep="\t")
 
 # Turn data in X and y numpy arrays
-import ipdb; ipdb.set_trace()
+X = fcp.df.loc[:, ["c1-c2", "word"]].values
+y = fcp.df.loc[:, "pos"].values
+
+# Set up cross validation

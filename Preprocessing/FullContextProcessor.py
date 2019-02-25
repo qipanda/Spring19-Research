@@ -114,3 +114,15 @@ class FullContextProcessor:
             idx_to_col[idx] = col_val
             
         self.twoway_maps[colname] = (col_to_idx, idx_to_col)
+
+    def convertColToIdx(self, colname: str) -> None:
+        if colname in self.twoway_maps:
+            fnc = lambda row, col_to_idx, colname: col_to_idx[row[colname]]
+            kwds = {"func": fnc, "col_to_idx": self.twoway_maps[colname][0], "colname": colname}
+            self.df.loc[:, colname] = self.df.apply(**kwds, axis=1)
+
+    def convertIdxToCol(self, colname: str) -> None:
+        if colname in self.twoway_maps:
+            fnc = lambda row, col_to_idx, colname: col_to_idx[row[colname]]
+            kwds = {"func": fnc, "col_to_idx": self.twoway_maps[colname][1], "colname": colname}
+            self.df.loc[:, colname] = self.df.apply(**kwds, axis=1)
