@@ -6,7 +6,7 @@ from SGNSModel import SGNSModel
 class SGNSClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, embedding_dim: int=5, c_vocab_len: int=100, 
                  w_vocab_len: int=100, lr: float=1e-3, train_epocs: int=10,
-                 torch_threads: int=5, BCE_reduction: str="mean"):
+                 torch_threads: int=5, BCE_reduction: str="mean") -> None:
         self.embedding_dim = embedding_dim
         self.c_vocab_len = c_vocab_len
         self.w_vocab_len = w_vocab_len
@@ -14,29 +14,7 @@ class SGNSClassifier(BaseEstimator, ClassifierMixin):
         self.train_epocs = train_epocs
         self.torch_threads = torch_threads
         self.BCE_reduction = BCE_reduction
-
         self.loss_fn = torch.nn.BCELoss(reduction=self.BCE_reduction)
-        self.model = SGNSModel(self.embedding_dim, self.c_vocab_len, self.w_vocab_len)
-
-    def get_params(self, deep=True):
-        return {
-            "embedding_dim": self.embedding_dim,
-            "c_vocab_len": self.c_vocab_len,
-            "w_vocab_len": self.w_vocab_len,
-            "lr": self.lr,
-            "train_epocs": self.train_epocs,
-            "torch_threads": self.torch_threads,
-            "BCE_reduction": self.BCE_reduction,
-        }
-        
-    def set_params(self, **params):
-        valid_params = self.get_params(deep=True)
-        for key, value in params.items():
-            if key in valid_params:
-                valid_params[key] = value 
-
-        # reset model with new params
-        self.__init__(**valid_params)
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         """
@@ -46,16 +24,19 @@ class SGNSClassifier(BaseEstimator, ClassifierMixin):
 
         Train the sgns classifer
         """
+        # Train a new model
+        self.model_ = SGNSModel(self.embedding_dim, self.c_vocab_len, self.w_vocab_len)
+
         torch.set_num_threads(self.torch_threads)
-        optimizer = torch.optim.SGD(self.model.parameters(), lr=self.lr)
+        optimizer = torch.optim.SGD(self.model_.parameters(), lr=self.lr)
 
         for epoch in range(self.train_epocs):
             for x, y_target in zip(X, y):
                 # 1.) Before new datum, zero old gradient instance built up in model
-                self.model.zero_grad()
+                self.model_.zero_grad()
 
                 # 2.) Forward pass to get prob of pos
-                pos_prob = self.model(torch.tensor([x[0]]), torch.tensor([x[1]]))
+                pos_prob = self.model_(torch.tensor([x[0]]), torch.tensor([x[1]]))
 
                 # 3.) Compute loss function
                 loss = self.loss_fn(pos_prob, torch.tensor([y_target], dtype=torch.float))
@@ -66,14 +47,14 @@ class SGNSClassifier(BaseEstimator, ClassifierMixin):
             
         return self
 
-    def predict(self, X):
-        pass
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        return self.model_(torch.tensor(X[:, 0]), torch.tensor(X[:, 1])).detach().numpy()
 
     def score(self, X: np.ndarray, y: np.ndarray) -> float:
         """
-        Return mean BCE loss based on X and y
+        Return [BCE_reduction] BCE loss based on X and y
         """
-        predictions = self.model(torch.tensor(X[:, 0]), torch.tensor(X[:, 1]))
+        predictions = self.model_(torch.tensor(X[:, 0]), torch.tensor(X[:, 1]))
         loss = self.loss_fn(predictions, torch.tensor(y, dtype=torch.float))
         return loss.item() 
 
