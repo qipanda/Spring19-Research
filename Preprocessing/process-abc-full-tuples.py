@@ -12,5 +12,3 @@ fcp.generateNegSamples(k=10, alpha=0.75, colname="word", negcolname="pos")
 
 # Pickle object to keep twoway maps and save dataframe as txt
 fcp.writeDf("../Data/ABC-News/abcnews-sgns-processed.txt", "\t")
-with open("../Data/ABC-News/abcnews-sgns-processed.pickle", "wb") as handle:
-    pickle.dump(fcp, handle)

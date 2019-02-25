@@ -102,7 +102,7 @@ class FullContextProcessor:
         """
         self.df = self.df.loc[~self.df.loc[:, colname].apply(lambda x: x.isnumeric()), :]
 
-    def createTwoWayMap(self, colname: str, savename: str) -> None:
+    def createTwoWayMap(self, colname: str) -> None:
         """
         For a given column, assign each unique value an index number from 0 to
         len-1 and save both dict maps
