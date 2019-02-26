@@ -1,10 +1,10 @@
 import pickle
 
-# 1.) Import country list and parse into lines
+# Import country list and parse into lines
 country_list = open("../Data/TABARI/countrylist.txt")
 lines = country_list.readlines()
 
-# 2.) Create {countryform:countrycode} dictionary
+# Create {countryform:countrycode} dictionary
 country_forms = {}
 
 for line in lines:

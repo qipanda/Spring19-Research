@@ -4,9 +4,10 @@ import torch
 from sklearn.base import BaseEstimator, ClassifierMixin
 
 class SGNSModel(torch.nn.Module):
-    def __init__(self, embedding_dim: int, c_vocab_len: int, w_vocab_len: int):
+    def __init__(self, embedding_dim: int, c_vocab_len: int, w_vocab_len: int) -> None:
         """
-        c is input vocab len and w is output vocab len
+        Skip-gram Negative Sampling model where c are input target embeddings and
+        w are context embeddings. This model serves to define the model for pytorch
         """
         super(SGNSModel, self).__init__()
         self.embedding_dim = embedding_dim
@@ -14,7 +15,12 @@ class SGNSModel(torch.nn.Module):
         self.w_embeds = torch.nn.Embedding(w_vocab_len, self.embedding_dim)
 
     def forward(self, c: torch.tensor, w: torch.tensor) -> torch.tensor:
-        n = c.size()[0] # c and w should have same first time
+        """
+        Forward pass through the sgns model, essentially the dot product of relevant
+        embeddings. First dim of c and w indicate how many samples we are putting 
+        through the forward pass and we return the prob(+|w,c)
+        """
+        n = c.size()[0] # c and w should have same first dim
         prods = torch.bmm(self.c_embeds(c).view(n, 1, -1), self.w_embeds(w).view(n, -1, 1))
         probs = torch.sigmoid(prods)
         return probs.view(n)
@@ -24,6 +30,9 @@ class SGNSClassifier(BaseEstimator, ClassifierMixin):
                  w_vocab_len: int=100, lr: float=1e-3, train_epocs: int=10,
                  torch_threads: int=5, BCE_reduction: str="mean", 
                  pred_thresh: float=0.5) -> None:
+        """
+        SGNS Classifier wrapper for piping with sklearn.
+        """
         self.embedding_dim = embedding_dim
         self.c_vocab_len = c_vocab_len
         self.w_vocab_len = w_vocab_len
@@ -36,11 +45,8 @@ class SGNSClassifier(BaseEstimator, ClassifierMixin):
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         """
-        INPUTS:
-            X - N samples by m feature length
-            y - N Binary target labels
-
-        Train the sgns classifer
+        Train a new sgns classifer with data X (samples by features) and 
+        y (binary targets)
         """
         # Train a new model
         self.model_ = SGNSModel(self.embedding_dim, self.c_vocab_len, self.w_vocab_len)

@@ -18,8 +18,6 @@ fcp = FullContextProcessor("../Data/ABC-News/abcnews-sgns-processed-idx.txt", se
 X = fcp.df.loc[:, ["c1-c2", "word"]].values
 y = fcp.df.loc[:, "pos"].values
 
-
-
 # Set up cross validation, want to evaluate on BCE
 sgns = SGNSClassifier(c_vocab_len = len(fcp.df["c1-c2"].unique()), 
                       w_vocab_len = len(fcp.df["word"].unique()),

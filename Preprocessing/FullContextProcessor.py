@@ -12,6 +12,9 @@ class FullContextProcessor:
         self.twoway_maps = {}
 
     def writeDf(self, fpath: str, sep: str) -> None:
+        """
+        Write the current dataframe to a text file
+        """
         with open(fpath, "w") as f:
             # write the header
             f.write(sep.join([str(col) for col in self.df.columns.tolist()]) + "\n")
@@ -88,7 +91,7 @@ class FullContextProcessor:
 
     def combineCols(self, col1: str, col2: str, sep: str) -> None:
         """
-        combine two cols to make a new col
+        Combine two cols to make a new col
         """
         self.df.loc[:, col1+sep+col2] = self.df.loc[:, col1] + sep + self.df.loc[:, col2]
 
@@ -98,7 +101,7 @@ class FullContextProcessor:
 
     def removeByNumericCol(self, colname: str) -> None:
         """
-        remove rows from self.df where colname's value is numeric
+        Remove rows from self.df where colname's value is numeric
         """
         self.df = self.df.loc[~self.df.loc[:, colname].apply(lambda x: x.isnumeric()), :]
 
@@ -116,12 +119,20 @@ class FullContextProcessor:
         self.twoway_maps[colname] = (col_to_idx, idx_to_col)
 
     def convertColToIdx(self, colname: str) -> None:
+        """
+        If a createTwoWayMap has been called on a colname, convert those column
+        values to the mapped index
+        """
         if colname in self.twoway_maps:
             fnc = lambda row, col_to_idx, colname: col_to_idx[row[colname]]
             kwds = {"func": fnc, "col_to_idx": self.twoway_maps[colname][0], "colname": colname}
             self.df.loc[:, colname] = self.df.apply(**kwds, axis=1)
 
     def convertIdxToCol(self, colname: str) -> None:
+        """
+        If a createTwoWayMap has been called on a colname, convert those column
+        values to the mapped values
+        """
         if colname in self.twoway_maps:
             fnc = lambda row, col_to_idx, colname: col_to_idx[row[colname]]
             kwds = {"func": fnc, "col_to_idx": self.twoway_maps[colname][1], "colname": colname}

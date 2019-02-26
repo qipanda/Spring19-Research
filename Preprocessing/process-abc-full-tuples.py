@@ -1,6 +1,11 @@
 import pickle
 from FullContextProcessor import FullContextProcessor
 
+"""
+Script for taking abcnews data with complete context window and distilling it
+down for sgns processing
+"""
+
 fcp = FullContextProcessor("../Data/ABC-News/abcnews-complete-ctxt.txt", "\t")
 fcp.df.loc[:, "pos"] = 1
 fcp.stackSepCol(colname="ctxt", sep=",", newcolname="word")
