@@ -32,7 +32,7 @@ sgns.fit(X, y)
 torch.save(sgns.model_.state_dict(), "sgns-20.pt")
 
 # # Load model
-# model = SGNSModel(embedding_dim=2,
+# model = SGNSModel(embedding_dim=20,
 #                    c_vocab_len = len(fcp.df["c1-c2"].unique()), 
 #                    w_vocab_len = len(fcp.df["word"].unique()),)
 # model.load_state_dict(torch.load("sgns-20.pt"))

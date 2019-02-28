@@ -50,3 +50,12 @@
     - Use country pairs K dim vector as input into hidden layers (feed forward
         for now) then feed into a softmax containing vocab and evenly split proportions
         of words in the context
+
+# Feb 27th 2019
+- How to make results more interpretable?
+- Reduce vocab down to "classes"?
+- Define classes based on international relations literature, find closest X words
+    to defined class words based on word2vec or some other synonom thing, map
+    all words down to that class? (Add structure)
+- Motivation of work could be to allow people to transfer their knowledge of one
+    relationship to another at a glance
