@@ -31,9 +31,12 @@ sgns.fit(X, y)
 # Save model for later
 torch.save(sgns.model_.state_dict(), "sgns-20.pt")
 
-# Load model
-model = SGNSModel()
-model.load_state_dict(torch.load("sgns-20.pt"))
+# # Load model
+# model = SGNSModel(embedding_dim=2,
+#                    c_vocab_len = len(fcp.df["c1-c2"].unique()), 
+#                    w_vocab_len = len(fcp.df["word"].unique()),)
+# model.load_state_dict(torch.load("sgns-20.pt"))
+
 
 # Set up training for 300 hidden dim model
 sgns = SGNSClassifier(embedding_dim = 300,
@@ -51,5 +54,7 @@ sgns.fit(X, y)
 torch.save(sgns.model_.state_dict(), "sgns-300.pt")
 
 # Load model
-model = SGNSModel()
-model.load_state_dict(torch.load("sgns-300.pt"))
+# model = SGNSModel(embedding_dim=300,
+#                    c_vocab_len = len(fcp.df["c1-c2"].unique()), 
+#                    w_vocab_len = len(fcp.df["word"].unique()),)
+# model.load_state_dict(torch.load("sgns-300.pt"))
