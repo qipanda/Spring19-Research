@@ -25,6 +25,7 @@ sgns = SGNSClassifier(embedding_dim = 20,
                       torch_threads = 5,
                       BCE_reduction = "mean",
                       pred_thresh = 0.5,)
+print("training 20 dim...")
 sgns.fit(X, y)
 
 # Save model for later
@@ -43,6 +44,7 @@ sgns = SGNSClassifier(embedding_dim = 300,
                       torch_threads = 5,
                       BCE_reduction = "mean",
                       pred_thresh = 0.5,)
+print("training 300 dim...")
 sgns.fit(X, y)
 
 # Save model for later
