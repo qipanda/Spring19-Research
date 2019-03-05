@@ -48,18 +48,19 @@ _, _, train_idxs, test_idxs = train_test_split(X,
 # Set up cross validation, want to evaluate on BCE
 sgns = SGNSClassifier(c_vocab_len = len(fcp.df["c1-c2"].unique()), 
                       w_vocab_len = len(fcp.df["word"].unique()),
-                      lr = 1e-3,
-                      train_epocs = 30,
-                      torch_threads = 3,
+                      batch_size = 32,
+                      train_epocs = 10,
+                      shuffle = True,
+                      torch_threads = 6,
                       BCE_reduction = "mean",
                       pred_thresh = 0.5,)
 
 scoring = {"Log-Loss": make_scorer(log_loss), "F1": make_scorer(f1_score)}
-param_grid = {"embedding_dim":[5, 20, 50, 100]}
+param_grid = {"embedding_dim":[5, 20, 50], "lr":[1e-1, 1e-2, 1e-3, 1e-4]}
 gs = GridSearchCV(estimator=sgns,
                   param_grid=param_grid,
                   scoring=scoring,
-                  n_jobs=2,
+                  n_jobs=1,
                   cv=[(train_idxs, test_idxs)],
                   refit="Log-Loss",
                   verbose=30)
@@ -71,7 +72,7 @@ print("test logloss: {} | test F1: {}".format(log_loss(y_pred, y_test), f1_score
 
 # Save best estimator
 best_model = gs.best_estimator_
-torch.save(best_model.model_.state_dict(), "sgns-best-model.pt")
+torch.save(best_model.model_.state_dict(), "sgns-best-model-v2.pt")
 
 # # load code
 # test = SGNSModel(best_model.embedding_dim, best_model.c_vocab_len, best_model.w_vocab_len)

@@ -1,3 +1,4 @@
+import itertools
 import pandas as pd
 import numpy as np
 import torch
@@ -20,16 +21,20 @@ class SGNSModel(torch.nn.Module):
         embeddings. First dim of c and w indicate how many samples we are putting 
         through the forward pass and we return the prob(+|w,c)
         """
-        n = c.size()[0] # c and w should have same first dim
+        # c and w need to be Nx1 so reshape to force it
+        c = c.view(-1, 1)
+        w = w.view(-1, 1)
+        n = c.size()[0] 
+
         prods = torch.bmm(self.c_embeds(c).view(n, 1, -1), self.w_embeds(w).view(n, -1, 1))
         probs = torch.sigmoid(prods)
         return probs.view(n)
 
 class SGNSClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, embedding_dim: int=5, c_vocab_len: int=100, 
-                 w_vocab_len: int=100, lr: float=1e-3, train_epocs: int=10,
-                 torch_threads: int=5, BCE_reduction: str="mean", 
-                 pred_thresh: float=0.5) -> None:
+                 w_vocab_len: int=100, lr: float=1e-3, batch_size: int=1,
+                 train_epocs: int=10, shuffle: bool=True, torch_threads: int=5, 
+                 BCE_reduction: str="mean", pred_thresh: float=0.5) -> None:
         """
         SGNS Classifier wrapper for piping with sklearn.
         """
@@ -37,7 +42,9 @@ class SGNSClassifier(BaseEstimator, ClassifierMixin):
         self.c_vocab_len = c_vocab_len
         self.w_vocab_len = w_vocab_len
         self.lr = lr
+        self.batch_size = batch_size
         self.train_epocs = train_epocs
+        self.shuffle = shuffle
         self.torch_threads = torch_threads
         self.BCE_reduction = BCE_reduction
         self.loss_fn = torch.nn.BCELoss(reduction=self.BCE_reduction)
@@ -51,21 +58,36 @@ class SGNSClassifier(BaseEstimator, ClassifierMixin):
         # Train a new model
         self.model_ = SGNSModel(self.embedding_dim, self.c_vocab_len, self.w_vocab_len)
 
+        # set max threads and initialize the SGD optimizer
         torch.set_num_threads(self.torch_threads)
         optimizer = torch.optim.SGD(self.model_.parameters(), lr=self.lr)
 
+        # set idxs to iterate over per epoch
+        idxs = np.arange(y.size)
+
         for epoch in range(self.train_epocs):
-            for x, y_target in zip(X, y):
-                # 1.) Before new datum, zero old gradient instance built up in model
+            # Shuffle idxs inplace if chosen to do so
+            if self.shuffle:
+                np.random.shuffle(idxs)
+
+            for i in itertools.count(0, self.batch_size):
+                # 1.) Check if gone through whole dataset already
+                if i >= y.size:
+                    break
+
+                # 2.) Get batch for gradient update
+                x, y_target = X[idxs[i:i+self.batch_size], :], y[idxs[i:i+self.batch_size]]
+
+                # 3.) Before new batch, zero old gradient instance built up in model
                 self.model_.zero_grad()
 
-                # 2.) Forward pass to get prob of pos
-                pos_prob = self.model_(torch.tensor([x[0]]), torch.tensor([x[1]]))
+                # 4.) Forward pass to get prob of pos
+                pos_prob = self.model_(torch.tensor([x[:, 0]]), torch.tensor([x[:, 1]]))
 
-                # 3.) Compute loss function
-                loss = self.loss_fn(pos_prob, torch.tensor([y_target], dtype=torch.float))
+                # 5.) Compute loss function
+                loss = self.loss_fn(pos_prob, torch.tensor([y_target], dtype=torch.float).view(-1))
 
-                # 4.) Back pass then update based on gradient from back pass
+                # 6.) Back pass then update based on gradient from back pass
                 loss.backward()
                 optimizer.step()
             
