@@ -22,6 +22,13 @@ class FullContextProcessor:
             for i, row in self.df.iterrows():
                 f.write(sep.join([str(col) for col in row.tolist()]) + "\n")
 
+    def appendDf(self, data_fpath: str, sep: str) -> None:
+        """
+        Append another dataframe to current one from a text file
+        """
+        df_to_append = pd.read_csv(data_fpath, sep)
+        self.df = self.df.append(df_to_append, ignore_index=True)
+
     def stackSepCol(self, colname: str, sep: str, newcolname: str) -> None:
         """
         Stack the df by a certain column that is seperated by some string
