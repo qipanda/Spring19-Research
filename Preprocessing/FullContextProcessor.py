@@ -79,6 +79,7 @@ class FullContextProcessor:
         col_samples = [key for key in freqs.keys()]
         probs = [prob for prob in freqs.values()]
         for idx, row in self.df.iterrows():
+            print("{} of {}".format(idx, self.df.shape[0]))
             row[negcolname] = 0
             forbidden_colval = row[colname]
             for _ in range(k):

@@ -59,3 +59,10 @@
     all words down to that class? (Add structure)
 - Motivation of work could be to allow people to transfer their knowledge of one
     relationship to another at a glance
+
+# March 4th 2019
+- Retrain model on better preprocessing & make neg sampling more tunable
+- Iterate with just one hold out and val set, remember to hold out a test set
+- Hyperparameters beyond embedding dim, also neg sampling and subsampling
+- Use existing word2vec vectors as initialization?
+- Sports filter?

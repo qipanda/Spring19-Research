@@ -35,7 +35,7 @@ if __name__ == "__main__":
     pool = mp.Pool(processes=10)
 
     # Start the listener
-    writefilepath = "../Data/ABC-News/india-complete-ctxt.txt"
+    writefilepath = "../Data/Times-of-India/india-complete-ctxt.txt"
     header = "date\tc1\tc2\tctxt\n"
     printprog = True
     watcher = pool.apply_async(listener, (writefilepath, printprog, queue, header)) 
