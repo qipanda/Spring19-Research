@@ -56,13 +56,13 @@ sgns = SGNSClassifier(c_vocab_len = len(fcp.df["c1-c2"].unique()),
                       pred_thresh = 0.5,)
 
 scoring = {"Log-Loss": make_scorer(log_loss), "F1": make_scorer(f1_score)}
-param_grid = {"embedding_dim":[5, 20, 50], "lr":[1e-1, 1e-2, 1e-3, 1e-4]}
+param_grid = {"embedding_dim":[20], "lr":[1e-1, 1e-2, 1e-3, 1e-4]}
 gs = GridSearchCV(estimator=sgns,
                   param_grid=param_grid,
                   scoring=scoring,
                   n_jobs=1,
                   cv=[(train_idxs, test_idxs)],
-                  refit="Log-Loss",
+                  refit=False,
                   verbose=30)
 gs.fit(X, y)
 
