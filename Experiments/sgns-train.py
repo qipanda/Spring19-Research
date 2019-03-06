@@ -39,7 +39,7 @@ sgns = SGNSClassifier(embedding_dim = 20,
                       torch_threads = 7,
                       BCE_reduction = "mean",
                       pred_thresh = 0.5,
-                      log_fpath=".logs/sgns-20-train.log")
+                      log_fpath="./logs/sgns-20-train.log")
 sgns.fit(X, y)
 
 # Save model for later
