@@ -15,7 +15,7 @@ fcp.appendDf(data_fpath="../Data/Times-of-India/india-sgns-processed.txt", sep="
 
 # Filter to c1-c2 pairs that have occured at least [occurance_thresh] times
 cpair_counts = fcp.df.loc[fcp.df["pos"]==1, :].groupby("c1-c2")["pos"].count()
-valid_cpairs = cpair_counts[cpair_counts >= 200]
+valid_cpairs = cpair_counts[cpair_counts >= 50]
 fcp.df = fcp.df.loc[fcp.df["c1-c2"].isin(valid_cpairs.keys()), :]
 
 # Create mappings and save indexed version
