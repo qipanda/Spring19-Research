@@ -80,8 +80,6 @@ class SGNSClassifier(BaseEstimator, ClassifierMixin):
         idxs = np.arange(y.size)
 
         for epoch in range(self.train_epocs):
-            logging.info("Epoch: {}".format(epoch))
-
             # Shuffle idxs inplace if chosen to do so
             if self.shuffle:
                 np.random.shuffle(idxs)
@@ -116,7 +114,8 @@ class SGNSClassifier(BaseEstimator, ClassifierMixin):
                 optimizer.step()
 
                 # Log stuff
-                logging.info("Batch:{} | Train-log-loss:{}".format(i, loss.item()))
+                logging.info("K:{} | lr:{:.2f} | Epoch:{} | Batch:{} | Train-log-loss:{:.4f}".\
+                    format(self.embedding_dim, self.lr, epoch, i, loss.item()))
             
         return self
 
