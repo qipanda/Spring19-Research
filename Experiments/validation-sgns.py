@@ -51,7 +51,7 @@ sgns = SGNSClassifier(c_vocab_len = len(fcp.df["c1-c2"].unique()),
                       batch_size = 32,
                       train_epocs = 10,
                       shuffle = True,
-                      torch_threads = 6,
+                      torch_threads = 7,
                       BCE_reduction = "mean",
                       pred_thresh = 0.5,
                       log_fpath = "./logs/sgns-20-lr-cv.log")
@@ -63,7 +63,7 @@ gs = GridSearchCV(estimator=sgns,
                   scoring=scoring,
                   n_jobs=1,
                   cv=[(train_idxs, test_idxs)],
-                  refit=False,
+                  refit="Log-Loss",
                   verbose=30)
 gs.fit(X, y)
 
