@@ -28,8 +28,8 @@ fcp.convertColToIdx(colname="word")
 X = fcp.df.loc[:, ["c1-c2", "word"]].values
 y = fcp.df.loc[:, "pos"].values
 
-# Set up training for 20 hidden dim model
-sgns = SGNSClassifier(embedding_dim = 20,
+# Set up training for 50 hidden dim model
+sgns = SGNSClassifier(embedding_dim = 50,
                       c_vocab_len = len(fcp.df["c1-c2"].unique()), 
                       w_vocab_len = len(fcp.df["word"].unique()),
                       lr = 1.0,
@@ -39,11 +39,11 @@ sgns = SGNSClassifier(embedding_dim = 20,
                       torch_threads = 7,
                       BCE_reduction = "mean",
                       pred_thresh = 0.5,
-                      log_fpath="./logs/sgns-20-train.log")
+                      log_fpath="./logs/sgns-50-train.log")
 sgns.fit(X, y)
 
 # Save model for later
-torch.save(sgns.model_.state_dict(), "sgns-20.pt")
+torch.save(sgns.model_.state_dict(), "sgns-50.pt")
 
 # # Load model
 # model = SGNSModel(embedding_dim=20,
