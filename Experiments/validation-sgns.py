@@ -68,12 +68,12 @@ gs = GridSearchCV(estimator=sgns,
 gs.fit(X, y)
 
 # # Best model is automatically retrained, now get test performance
-# y_pred = gs.predict(X_test)
-# print("test logloss: {} | test F1: {}".format(log_loss(y_pred, y_test), f1_score(y_pred, y_test)))
+y_pred = gs.predict(X_test)
+print("test logloss: {} | test F1: {}".format(log_loss(y_pred, y_test), f1_score(y_pred, y_test)))
 
-# # Save best estimator
-# best_model = gs.best_estimator_
-# torch.save(best_model.model_.state_dict(), "sgns-best-model-v2.pt")
+# Save best estimator
+best_model = gs.best_estimator_
+torch.save(best_model.model_.state_dict(), "sgns-best.pt")
 
 # # load code
 # test = SGNSModel(best_model.embedding_dim, best_model.c_vocab_len, best_model.w_vocab_len)
