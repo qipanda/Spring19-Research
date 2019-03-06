@@ -112,7 +112,7 @@ class SGNSClassifier(BaseEstimator, ClassifierMixin):
         """
         Return list of predictions based on [self.pred_thresh]
         """
-        c, w = torch.tensor([x[:, 0]]), torch.tensor([x[:, 1]])
+        c, w = torch.tensor([X[:, 0]]), torch.tensor([X[:, 1]])
         if USE_CUDA:
             c, w = c.cuda(), w.cuda()
             y_pred = self.model_(c, w).cpu().detach().numpy() > self.pred_thresh
@@ -125,7 +125,7 @@ class SGNSClassifier(BaseEstimator, ClassifierMixin):
         """
         Return list of probabilitic predictions
         """
-        c, w = torch.tensor([x[:, 0]]), torch.tensor([x[:, 1]])
+        c, w = torch.tensor([x[X, 0]]), torch.tensor([X[:, 1]])
         if USE_CUDA:
             c, w = c.cuda(), w.cuda()
             y_pred = self.model_(c, w).cpu().detach().numpy()
