@@ -56,7 +56,7 @@ sgns = SGNSClassifier(c_vocab_len = len(fcp.df["c1-c2"].unique()),
                       pred_thresh = 0.5,)
 
 scoring = {"Log-Loss": make_scorer(log_loss), "F1": make_scorer(f1_score)}
-param_grid = {"embedding_dim":[20, 50], "lr":[1e-1, 1e-2, 1e-3, 1e-4]}
+param_grid = {"embedding_dim":[20], "lr":[1e-1, 1e-2, 1e-3, 1e-4]}
 gs = GridSearchCV(estimator=sgns,
                   param_grid=param_grid,
                   scoring=scoring,
@@ -66,13 +66,13 @@ gs = GridSearchCV(estimator=sgns,
                   verbose=30)
 gs.fit(X, y)
 
-# Best model is automatically retrained, now get test performance
-y_pred = gs.predict(X_test)
-print("test logloss: {} | test F1: {}".format(log_loss(y_pred, y_test), f1_score(y_pred, y_test)))
+# # Best model is automatically retrained, now get test performance
+# y_pred = gs.predict(X_test)
+# print("test logloss: {} | test F1: {}".format(log_loss(y_pred, y_test), f1_score(y_pred, y_test)))
 
-# Save best estimator
-best_model = gs.best_estimator_
-torch.save(best_model.model_.state_dict(), "sgns-best-model-v2.pt")
+# # Save best estimator
+# best_model = gs.best_estimator_
+# torch.save(best_model.model_.state_dict(), "sgns-best-model-v2.pt")
 
 # # load code
 # test = SGNSModel(best_model.embedding_dim, best_model.c_vocab_len, best_model.w_vocab_len)
