@@ -66,3 +66,9 @@
 - Hyperparameters beyond embedding dim, also neg sampling and subsampling
 - Use existing word2vec vectors as initialization?
 - Sports filter?
+
+# March 5th 2019
+- Add regime type as a feature?
+- Combine individual country vectors instead of country pair vectors (less sparse 
+    use of training data)
+    - Initialize with word2vec vectors?

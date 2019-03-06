@@ -1,4 +1,5 @@
 import itertools
+import logging
 import pandas as pd
 import numpy as np
 import torch
@@ -37,7 +38,8 @@ class SGNSClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, embedding_dim: int=5, c_vocab_len: int=100, 
                  w_vocab_len: int=100, lr: float=1e-3, batch_size: int=1,
                  train_epocs: int=10, shuffle: bool=True, torch_threads: int=5, 
-                 BCE_reduction: str="mean", pred_thresh: float=0.5) -> None:
+                 BCE_reduction: str="mean", pred_thresh: float=0.5, 
+                 log_fpath: str=None) -> None:
         """
         SGNS Classifier wrapper for piping with sklearn.
         """
@@ -52,12 +54,17 @@ class SGNSClassifier(BaseEstimator, ClassifierMixin):
         self.BCE_reduction = BCE_reduction
         self.loss_fn = torch.nn.BCELoss(reduction=self.BCE_reduction)
         self.pred_thresh = pred_thresh
+        self.log_fpath = log_fpath
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         """
         Train a new sgns classifer with data X (samples by features) and 
         y (binary targets)
         """
+        # Setup logging to file if available
+        if self.log_fpath:
+            logging.basicConfig(filename=self.log_fpath, level=logging.INFO)
+
         # Train a new model
         self.model_ = SGNSModel(self.embedding_dim, self.c_vocab_len, self.w_vocab_len)
 
@@ -73,22 +80,24 @@ class SGNSClassifier(BaseEstimator, ClassifierMixin):
         idxs = np.arange(y.size)
 
         for epoch in range(self.train_epocs):
+            logging.info("Epoch: {}".format(epoch))
+
             # Shuffle idxs inplace if chosen to do so
             if self.shuffle:
                 np.random.shuffle(idxs)
 
             for i in itertools.count(0, self.batch_size):
-                # 1.) Check if gone through whole dataset already
+                # Check if gone through whole dataset already
                 if i >= y.size:
                     break
 
-                # 2.) Get batch for gradient update
+                # Get batch for gradient update
                 x, y_target = X[idxs[i:i+self.batch_size], :], y[idxs[i:i+self.batch_size]]
 
-                # 3.) Before new batch, zero old gradient instance built up in model
+                # Before new batch, zero old gradient instance built up in model
                 self.model_.zero_grad()
 
-                # 4.) get input and target as torch tensors, use GPU is available
+                # get input and target as torch tensors, use GPU is available
                 c, w = torch.tensor([x[:, 0]]), torch.tensor([x[:, 1]])
                 y_target_tensor = torch.tensor([y_target], dtype=torch.float).view(-1)
 
@@ -96,15 +105,18 @@ class SGNSClassifier(BaseEstimator, ClassifierMixin):
                     c, w = c.cuda(), w.cuda()
                     y_target_tensor = y_target_tensor.cuda()
 
-                # 5.) Forward pass to get prob of pos
+                # Forward pass to get prob of pos
                 pos_prob = self.model_(c, w)
 
-                # 6.) Compute loss function
+                # Compute loss function
                 loss = self.loss_fn(pos_prob, y_target_tensor)
 
-                # 7.) Back pass then update based on gradient from back pass
+                # Back pass then update based on gradient from back pass
                 loss.backward()
                 optimizer.step()
+
+                # Log stuff
+                logging.info("Batch:{} | Train-log-loss:{}".format(i, loss.item()))
             
         return self
 

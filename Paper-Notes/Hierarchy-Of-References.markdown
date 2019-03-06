@@ -14,6 +14,7 @@ Format: [Year][First Author],[Short Description of Paper]
         relating to applying them
     - *2017 Potnoff*, Developed tools for getting high level snapshots of underground
         forums based on the text of forum posts
+    - *2015 Minhas*, SVM to predicate country political regime types
 - *2011 Westveld*, Used linear models to model dyadic trade/conflict levels between 
     countries using things like GDP and cooperation in conflict
 - *1981 RHT O'Kane* Simple linear model with GDP predicting if a coup will occur in a country for
