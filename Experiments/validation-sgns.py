@@ -22,6 +22,9 @@ cpair_counts = fcp.df.loc[fcp.df["pos"]==1, :].groupby("c1-c2")["pos"].count()
 valid_cpairs = cpair_counts[cpair_counts >= 200]
 fcp.df = fcp.df.loc[fcp.df["c1-c2"].isin(valid_cpairs.keys()), :]
 
+# Filter out where c1 and c2 are same
+fcp.df = fcp.df.loc[(fcp.df["c1"] ~= fcp.df["c2"]), :]
+
 # Create mappings and save indexed version
 fcp.createTwoWayMap(colname="c1-c2")
 fcp.createTwoWayMap(colname="word")
@@ -54,7 +57,7 @@ sgns = SGNSClassifier(c_vocab_len = len(fcp.df["c1-c2"].unique()),
                       torch_threads = 7,
                       BCE_reduction = "mean",
                       pred_thresh = 0.5,
-                      log_fpath = "./logs/sgns-20-lr-cv.log")
+                      log_fpath = "./logs/sgns-cv.log")
 
 scoring = {"Log-Loss": make_scorer(log_loss), "F1": make_scorer(f1_score)}
 param_grid = {"embedding_dim":[5, 20, 50], "lr":[2.0, 1.0, 0.1]}
