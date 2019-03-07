@@ -15,7 +15,7 @@ fcp.appendDf(data_fpath="../Data/Times-of-India/india-sgns-processed.txt", sep="
 
 # Filter to c1-c2 pairs that have occured at least [occurance_thresh] times
 cpair_counts = fcp.df.loc[fcp.df["pos"]==1, :].groupby("c1-c2")["pos"].count()
-valid_cpairs = cpair_counts[cpair_counts >= 50]
+valid_cpairs = cpair_counts[cpair_counts >= 200]
 fcp.df = fcp.df.loc[fcp.df["c1-c2"].isin(valid_cpairs.keys()), :]
 
 # Create mappings and save indexed version
@@ -28,8 +28,8 @@ fcp.convertColToIdx(colname="word")
 X = fcp.df.loc[:, ["c1-c2", "word"]].values
 y = fcp.df.loc[:, "pos"].values
 
-# Set up training for 50 hidden dim model
-sgns = SGNSClassifier(embedding_dim = 50,
+# Set up training for 5 hidden dim model
+sgns = SGNSClassifier(embedding_dim = 5,
                       c_vocab_len = len(fcp.df["c1-c2"].unique()), 
                       w_vocab_len = len(fcp.df["word"].unique()),
                       lr = 1.0,
@@ -39,11 +39,11 @@ sgns = SGNSClassifier(embedding_dim = 50,
                       torch_threads = 7,
                       BCE_reduction = "mean",
                       pred_thresh = 0.5,
-                      log_fpath="./logs/sgns-50-train.log")
+                      log_fpath="./logs/sgns-5-train.log")
 sgns.fit(X, y)
 
 # Save model for later
-torch.save(sgns.model_.state_dict(), "sgns-50.pt")
+torch.save(sgns.model_.state_dict(), "sgns-5.pt")
 
 # # Load model
 # model = SGNSModel(embedding_dim=20,
