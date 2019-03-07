@@ -15,7 +15,7 @@ import torch
 
 # Load data and combine
 fcp = FullContextProcessor(data_fpath="../Data/ABC-News/abcnews-sgns-processed.txt", sep="\t")
-fcp.appendDf(data_fpath="../Data/Times-of-India/india-sgns-processed.txt", sep="\t")
+# fcp.appendDf(data_fpath="../Data/Times-of-India/india-sgns-processed.txt", sep="\t")
 
 # Filter to c1-c2 pairs that have occured at least [occurance_thresh] times
 cpair_counts = fcp.df.loc[fcp.df["pos"]==1, :].groupby("c1-c2")["pos"].count()
@@ -57,7 +57,7 @@ sgns = SGNSClassifier(c_vocab_len = len(fcp.df["c1-c2"].unique()),
                       log_fpath = "./logs/sgns-20-lr-cv.log")
 
 scoring = {"Log-Loss": make_scorer(log_loss), "F1": make_scorer(f1_score)}
-param_grid = {"embedding_dim":[5, 20, 50], "lr":[2.0, 1.0, 0.75, 0.5, 0.25]}
+param_grid = {"embedding_dim":[5, 20, 50], "lr":[2.0, 1.0, 0.1]}
 gs = GridSearchCV(estimator=sgns,
                   param_grid=param_grid,
                   scoring=scoring,
@@ -71,9 +71,9 @@ gs.fit(X, y)
 y_pred = gs.predict(X_test)
 print("test logloss: {} | test F1: {}".format(log_loss(y_pred, y_test), f1_score(y_pred, y_test)))
 
-# Save best estimator
-best_model = gs.best_estimator_
-torch.save(best_model.model_.state_dict(), "sgns-best.pt")
+# # Save best estimator
+# best_model = gs.best_estimator_
+# torch.save(best_model.model_.state_dict(), "sgns-best.pt")
 
 # # load code
 # test = SGNSModel(best_model.embedding_dim, best_model.c_vocab_len, best_model.w_vocab_len)
