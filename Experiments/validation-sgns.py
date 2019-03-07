@@ -23,7 +23,7 @@ valid_cpairs = cpair_counts[cpair_counts >= 200]
 fcp.df = fcp.df.loc[fcp.df["c1-c2"].isin(valid_cpairs.keys()), :]
 
 # Filter out where c1 and c2 are same
-fcp.df = fcp.df.loc[(fcp.df["c1"] ~= fcp.df["c2"]), :]
+fcp.df = fcp.df.loc[(fcp.df["c1"] != fcp.df["c2"]), :]
 
 # Create mappings and save indexed version
 fcp.createTwoWayMap(colname="c1-c2")
