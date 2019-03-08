@@ -44,6 +44,20 @@ class FullContextProcessor:
         df.drop(labels=colname, axis="columns", inplace=True)
         self.df = df
 
+    def returnNumpyNegSamples(self, k: int, alpha: float, colname: str, 
+                                negcolname: str) -> np.ndarray:
+        """
+        Assuming [colname] has been indexified, return training data of colname
+        in the form of [k] negative samples per row
+        """
+        import ipdb; ipdb.set_trace()
+        counts = self.df.groupby(colname).size().sort_index().values
+        counts *= alpha
+        probs = counts/np.sum(counts)
+        values = counts.index.values
+
+        return np.random.choice(a=values, size=k*self.df.shape[0], p=probs)
+
     def subsample(self, t: float, subcolname: str) -> None:
         """
         Subsample based on col frequency frequency
