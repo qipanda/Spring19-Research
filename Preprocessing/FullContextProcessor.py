@@ -44,17 +44,17 @@ class FullContextProcessor:
         df.drop(labels=colname, axis="columns", inplace=True)
         self.df = df
 
-    def returnNumpyNegSamples(self, k: int, alpha: float, colname: str, 
-                                negcolname: str) -> np.ndarray:
+    def returnNumpyNegSamples(self, k: int, alpha: float, colname: str) -> np.ndarray:
         """
         Assuming [colname] has been indexified, return training data of colname
         in the form of [k] negative samples per row
         """
-        import ipdb; ipdb.set_trace()
-        counts = self.df.groupby(colname).size().sort_index().values
+        counts = self.df.groupby(colname).size().sort_index()
+        values = counts.index.values
+        
+        counts = counts.values.astype(np.float64)
         counts *= alpha
         probs = counts/np.sum(counts)
-        values = counts.index.values
 
         return np.random.choice(a=values, size=k*self.df.shape[0], p=probs)
 
@@ -138,7 +138,7 @@ class FullContextProcessor:
             col_to_idx[col_val] = idx
             idx_to_col[idx] = col_val
             
-        self.twoway_maps[colname] = (col_to_idx, idx_to_col)
+        self.twoway_maps[colname] = {"col_to_idx":col_to_idx, "idx_to_col":idx_to_col}
 
     def convertColToIdx(self, colname: str) -> None:
         """
@@ -147,7 +147,9 @@ class FullContextProcessor:
         """
         if colname in self.twoway_maps:
             fnc = lambda row, col_to_idx, colname: col_to_idx[row[colname]]
-            kwds = {"func": fnc, "col_to_idx": self.twoway_maps[colname][0], "colname": colname}
+            kwds = {"func": fnc, 
+                    "col_to_idx": self.twoway_maps[colname]["col_to_idx"],
+                    "colname": colname}
             self.df.loc[:, colname] = self.df.apply(**kwds, axis=1)
 
     def convertIdxToCol(self, colname: str) -> None:
@@ -157,5 +159,7 @@ class FullContextProcessor:
         """
         if colname in self.twoway_maps:
             fnc = lambda row, col_to_idx, colname: col_to_idx[row[colname]]
-            kwds = {"func": fnc, "col_to_idx": self.twoway_maps[colname][1], "colname": colname}
+            kwds = {"func": fnc,
+                    "col_to_idx": self.twoway_maps[colname]["idx_to_col"],
+                    "colname": colname}
             self.df.loc[:, colname] = self.df.apply(**kwds, axis=1)
