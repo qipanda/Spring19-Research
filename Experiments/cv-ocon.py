@@ -12,7 +12,7 @@ from sklearn.metrics import make_scorer, log_loss, f1_score, precision_score, re
 import torch
 import numpy as np
 
-fcp = FullContextProcessor("../Data/OConnor2013/ocon-verb-extracted.txt", "\t")
+fcp = FullContextProcessor("../Data/OConnor2013/ocon-verb-noun-extracted.txt", "\t")
 
 fcp.createTwoWayMap("SOURCE")
 fcp.createTwoWayMap("RECEIVER")
