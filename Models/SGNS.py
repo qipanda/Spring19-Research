@@ -14,7 +14,7 @@ class SGNSModel(torch.nn.Module):
         Skip-gram Negative Sampling model where c are input target embeddings and
         w are context embeddings. This model serves to define the model for pytorch
         """
-        super(SGNSModel, self).__init__()
+        super().__init__()
         self.embedding_dim = embedding_dim
         self.c_embeds = torch.nn.Embedding(c_vocab_len, self.embedding_dim)
         self.w_embeds = torch.nn.Embedding(w_vocab_len, self.embedding_dim)
@@ -158,7 +158,7 @@ class SourceReceiverModel(torch.nn.Module):
         s, r, w are source, receiver, and word respectivly, cnts are unique vocab
         length of each and K is their embedding dimension
         """
-        super(SourceReceiverModel, self).__init__()
+        super().__init__()
         self.s_embeds = torch.nn.Embedding(s_cnt, K)
         self.r_embeds = torch.nn.Embedding(r_cnt, K)
         self.w_embeds = torch.nn.Embedding(w_cnt, K)
@@ -203,6 +203,12 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
 
         self.loss_fn = torch.nn.BCELoss(reduction=self.BCE_reduction)
 
+    def returnModel(self):
+        """
+        Return a blank SR model for this classifier
+        """
+        return SourceReceiverModel(self.s_cnt, self.r_cnt, self.w_cnt, self.K)
+
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         """
         Train a new SR classifer with data X (samples by features) and 
@@ -213,7 +219,7 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
             logging.basicConfig(filename=self.log_fpath, level=logging.INFO)
 
         # Train a new model
-        self.model_ = SourceReceiverModel(self.s_cnt, self.r_cnt, self.w_cnt, self.K)
+        self.model_ = self.returnModel()
 
         # If GPU available, use them
         if USE_CUDA:
@@ -298,3 +304,39 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         """
         y_pred = self.predict(X)
         return np.mean(y_pred == y)
+
+class SourceReceiverNonlinearModel(SourceReceiverModel):
+    def __init__(self, s_cnt: int, r_cnt: int, w_cnt: int, K: int, alpha: float) -> None:
+        super().__init__(s_cnt, r_cnt, w_cnt, K)
+        self.ELU = torch.nn.ELU(alpha=alpha)
+
+    def forward(self, s: torch.tensor, r: torch.tensor, w: torch.tensor) -> torch.tensor:
+        """
+        Forward pass through SRNonlinear model
+        """
+        # Force nx1 shape, and save the shape
+        s, r, w = s.view(-1, 1), r.view(-1, 1), w.view(-1, 1)
+        n = s.size()[0] 
+
+        # Add source and receivers, then dot with word vector for all n samples
+        sr_embed = self.ELU(self.s_embeds(s) + self.r_embeds(r))
+        w_embed = self.w_embeds(w)
+        prods = torch.bmm(sr_embed.view(n, 1, -1), w_embed.view(n, -1, 1))
+        probs = torch.sigmoid(prods)
+
+        return probs.view(n)
+
+class SourceReceiverNonlinearClassifier(SourceReceiverClassifier):
+    def __init__(self, s_cnt: int=10, r_cnt: int=10, w_cnt: int=100, K: int=5, 
+                 alpha: float=1.0, lr: float=1e-1, batch_size: int=32, train_epocs: int=10, 
+                 shuffle: bool=True, torch_threads: int=5, BCE_reduction: str="mean",
+                 pred_thresh: float=0.5, log_fpath: str=None) -> None:
+        """
+        SourceReceiver Classifier wrapper for piping with sklearn.
+        """
+        super().__init__(s_cnt, r_cnt, w_cnt, K, lr, batch_size, train_epocs, 
+            shuffle, torch_threads, BCE_reduction, pred_thresh, log_fpath)
+        self.alpha = alpha
+
+    def returnModel(self):
+        return SourceReceiverNonlinearModel(self.s_cnt, self.r_cnt, self.w_cnt, self.K, self.alpha)
