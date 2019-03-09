@@ -36,10 +36,10 @@ y_neg = np.zeros(X_neg.shape[0])
 X = np.concatenate((X, X_neg), axis=0)
 y = np.concatenate((y, y_neg), axis=0)
 
-#TODO GET RID OF TEST
-X = X[:100, :]
-y = y[:100]
-y[-90:] = 0.0
+# #TODO GET RID OF TEST
+# X = X[:100, :]
+# y = y[:100]
+# y[-90:] = 0.0
 
 # Get train, val, test splits
 X, X_test, y, y_test = train_test_split(X, 
