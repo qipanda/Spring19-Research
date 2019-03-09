@@ -27,7 +27,8 @@ y = np.ones(X.shape[0])
 k = 10
 neg_word_idxs = fcp.returnNumpyNegSamples(k=k,
                                           alpha=0.75,
-                                          colname="WORD")
+                                          colname="WORD",
+                                          seed=0)
 X_neg = np.tile(X[:, :2], (k, 1))
 X_neg = np.concatenate((X_neg, neg_word_idxs.reshape(-1, 1)), axis=1)
 y_neg = np.zeros(X_neg.shape[0])

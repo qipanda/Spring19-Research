@@ -44,11 +44,14 @@ class FullContextProcessor:
         df.drop(labels=colname, axis="columns", inplace=True)
         self.df = df
 
-    def returnNumpyNegSamples(self, k: int, alpha: float, colname: str) -> np.ndarray:
+    def returnNumpyNegSamples(self, k: int, alpha: float, colname: str, seed: int) -> np.ndarray:
         """
         Assuming [colname] has been indexified, return training data of colname
         in the form of [k] negative samples per row
         """
+        # Make sure reproducable
+        np.random.seed(seed)
+
         counts = self.df.groupby(colname).size().sort_index()
         values = counts.index.values
         
