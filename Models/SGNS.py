@@ -184,7 +184,7 @@ class SourceReceiverModel(torch.nn.Module):
 
 class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, s_cnt: int=10, r_cnt: int=10, w_cnt: int=100, K: int=5, 
-                 w_mean: float, w_str: float, lr: float=1e-1, batch_size: int=32,
+                 w_mean: float=0.0, w_std: float=1.0, lr: float=1e-1, batch_size: int=32,
                  train_epocs: int=10, shuffle: bool=True, torch_threads: int=5, 
                  BCE_reduction: str="mean", pred_thresh: float=0.5, log_fpath: str=None) -> None:
         """
@@ -193,6 +193,8 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         self.s_cnt = s_cnt
         self.r_cnt = r_cnt
         self.w_cnt = w_cnt
+        self.w_mean = w_mean
+        self.w_std = w_std
         self.K = K
         self.lr = lr
         self.batch_size = batch_size
@@ -209,7 +211,8 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         """
         Return a blank SR model for this classifier
         """
-        return SourceReceiverModel(self.s_cnt, self.r_cnt, self.w_cnt, self.K)
+        return SourceReceiverModel(self.s_cnt, self.r_cnt, self.w_cnt, self.K, 
+            self.w_mean, self.w_std)
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         """
