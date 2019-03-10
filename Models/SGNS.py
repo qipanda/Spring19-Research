@@ -7,6 +7,13 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 
 # CUDA variable for GPU usage if it exists
 USE_CUDA = torch.cuda.is_available()
+if USE_CUDA:
+    DEVICE = torch.device("cuda")
+else:
+    DEVICE = torch.device("cpu")
+
+# set default torch tensor dtype
+torch.set_default_dtype(torch.double)
 
 class SGNSModel(torch.nn.Module):
     def __init__(self, embedding_dim: int, c_vocab_len: int, w_vocab_len: int) -> None:
@@ -153,17 +160,20 @@ class SGNSClassifier(BaseEstimator, ClassifierMixin):
         return np.mean(y_pred == y)
 
 class SourceReceiverModel(torch.nn.Module):
-    def __init__(self, s_cnt: int, r_cnt: int, w_cnt: int, K: int, 
-                 w_mean: float, w_std: float) -> None:
+    def __init__(self, s_cnt: int, r_cnt: int, w_cnt: int, K: int, s_mean: float,
+                 s_std: float, r_mean: float, r_std: float, w_mean: float, 
+                 w_std: float) -> None:
         """
         s, r, w are source, receiver, and word respectivly, cnts are unique vocab
         length of each and K is their embedding dimension
         """
         super().__init__()
-        self.s_embeds = torch.nn.Embedding(s_cnt, K)
-        self.r_embeds = torch.nn.Embedding(r_cnt, K)
+        self.s_embeds = torch.nn.Embedding.from_pretrained(
+            torch.nn.init.normal_(torch.empty(s_cnt, K, device=DEVICE), s_mean, s_std), freeze=False)
+        self.r_embeds = torch.nn.Embedding.from_pretrained(
+            torch.nn.init.normal_(torch.empty(r_cnt, K, device=DEVICE), r_mean, r_std), freeze=False)
         self.w_embeds = torch.nn.Embedding.from_pretrained(
-            torch.nn.init.normal_(torch.empty(w_cnt, K), w_mean, w_std))
+            torch.nn.init.normal_(torch.empty(w_cnt, K, device=DEVICE), w_mean, w_std), freeze=False)
 
     def forward(self, s: torch.tensor, r: torch.tensor, w: torch.tensor) -> torch.tensor:
         """
@@ -184,6 +194,7 @@ class SourceReceiverModel(torch.nn.Module):
 
 class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, s_cnt: int=10, r_cnt: int=10, w_cnt: int=100, K: int=5, 
+                 s_mean: float=0.0, s_std: float=1.0, r_mean: float=0.0, r_std: float=1.0,
                  w_mean: float=0.0, w_std: float=1.0, lr: float=1e-1, batch_size: int=32,
                  train_epocs: int=10, shuffle: bool=True, torch_threads: int=5, 
                  BCE_reduction: str="mean", pred_thresh: float=0.5, log_fpath: str=None) -> None:
@@ -191,7 +202,11 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         SourceReceiver Classifier wrapper for piping with sklearn.
         """
         self.s_cnt = s_cnt
+        self.s_mean = s_mean
+        self.s_std = s_std
         self.r_cnt = r_cnt
+        self.r_mean = r_mean
+        self.r_std = r_std
         self.w_cnt = w_cnt
         self.w_mean = w_mean
         self.w_std = w_std
@@ -212,7 +227,7 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         Return a blank SR model for this classifier
         """
         return SourceReceiverModel(self.s_cnt, self.r_cnt, self.w_cnt, self.K, 
-            self.w_mean, self.w_std)
+            self.s_mean, self.s_std, self.r_mean, self.r_std, self.w_mean, self.w_std)
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         """
@@ -222,14 +237,10 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         # Setup logging to file if available
         if self.log_fpath:
             logging.basicConfig(filename=self.log_fpath, level=logging.INFO)
-        logging.info(USE_CUDA)
+        logging.info("USING CUDA: {}".format(USE_CUDA))
 
         # Train a new model
         self.model_ = self.returnModel()
-
-        # If GPU available, use them
-        if USE_CUDA:
-            self.model_ = self.model_.cuda()
 
         # set max threads and initialize the SGD optimizer
         torch.set_num_threads(self.torch_threads)
@@ -255,12 +266,10 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
                 self.model_.zero_grad()
 
                 # get input and target as torch tensors, use GPU is available
-                s, r, w = torch.tensor([x[:, 0]]), torch.tensor([x[:, 1]]), torch.tensor([x[:, 2]])
-                y_target_tensor = torch.tensor([y_target], dtype=torch.float).view(-1)
-
-                if USE_CUDA:
-                    s, r, w = s.cuda(), r.cuda(), w.cuda()
-                    y_target_tensor = y_target_tensor.cuda()
+                s = torch.tensor([x[:, 0]], device=DEVICE)
+                r = torch.tensor([x[:, 1]], device=DEVICE)
+                w = torch.tensor([x[:, 2]], device=DEVICE)
+                y_target_tensor = torch.tensor([y_target], device=DEVICE).view(-1)
 
                 # Forward pass to get prob of pos
                 pos_prob = self.model_(s, r, w)
@@ -282,9 +291,10 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         """
         Return list of predictions based on [self.pred_thresh]
         """
-        s, r, w = torch.tensor([X[:, 0]]), torch.tensor([X[:, 1]]), torch.tensor([X[:, 2]])
+        s = torch.tensor([X[:, 0]], device=DEVICE)
+        r = torch.tensor([X[:, 1]], device=DEVICE)
+        w = torch.tensor([X[:, 2]], device=DEVICE)
         if USE_CUDA:
-            s, r, w = s.cuda(), r.cuda(), w.cuda()
             y_pred = self.model_(s, r, w).cpu().detach().numpy() > self.pred_thresh
         else:
             y_pred = self.model_(s, r, w).detach().numpy() > self.pred_thresh
@@ -295,9 +305,10 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         """
         Return list of probabilitic predictions
         """
-        s, r, w = torch.tensor([X[:, 0]]), torch.tensor([X[:, 1]]), torch.tensor([X[:, 2]])
+        s = torch.tensor([X[:, 0]], device=DEVICE)
+        r = torch.tensor([X[:, 1]], device=DEVICE)
+        w = torch.tensor([X[:, 2]], device=DEVICE)
         if USE_CUDA:
-            s, r, w = s.cuda(), r.cuda(), w.cuda()
             y_pred = self.model_(s, r, w).cpu().detach().numpy()
         else:
             y_pred = self.model_(s, r, w).detach().numpy()
