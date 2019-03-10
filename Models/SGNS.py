@@ -175,6 +175,9 @@ class SourceReceiverModel(torch.nn.Module):
         self.w_embeds = torch.nn.Embedding.from_pretrained(
             torch.nn.init.normal_(torch.empty(w_cnt, K, device=DEVICE), w_mean, w_std), freeze=False)
 
+        print(self.s_embeds.weight.device)
+        print(torch.get_num_threads())
+
     def forward(self, s: torch.tensor, r: torch.tensor, w: torch.tensor) -> torch.tensor:
         """
         Forward pass through SRModel, adds together the s and receiver tensors,
@@ -243,7 +246,7 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         self.model_ = self.returnModel()
 
         # set max threads and initialize the SGD optimizer
-        torch.set_num_threads(self.torch_threads)
+        # torch.set_num_threads(self.torch_threads)
         optimizer = torch.optim.SGD(self.model_.parameters(), lr=self.lr)
 
         # set idxs to iterate over per epoch
