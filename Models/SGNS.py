@@ -153,7 +153,8 @@ class SGNSClassifier(BaseEstimator, ClassifierMixin):
         return np.mean(y_pred == y)
 
 class SourceReceiverModel(torch.nn.Module):
-    def __init__(self, s_cnt: int, r_cnt: int, w_cnt: int, K: int) -> None:
+    def __init__(self, s_cnt: int, r_cnt: int, w_cnt: int, K: int, 
+                 w_mean: float, w_std: float) -> None:
         """
         s, r, w are source, receiver, and word respectivly, cnts are unique vocab
         length of each and K is their embedding dimension
@@ -161,7 +162,8 @@ class SourceReceiverModel(torch.nn.Module):
         super().__init__()
         self.s_embeds = torch.nn.Embedding(s_cnt, K)
         self.r_embeds = torch.nn.Embedding(r_cnt, K)
-        self.w_embeds = torch.nn.Embedding(w_cnt, K)
+        self.w_embeds = torch.nn.Embedding.from_pretrained(
+            torch.nn.init.normal_(torch.empty(w_cnt, K), w_mean, w_std))
 
     def forward(self, s: torch.tensor, r: torch.tensor, w: torch.tensor) -> torch.tensor:
         """
@@ -181,10 +183,10 @@ class SourceReceiverModel(torch.nn.Module):
         return probs.view(n)
 
 class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
-    def __init__(self, s_cnt: int=10, r_cnt: int=10, w_cnt: int=100, K: int=5,
-                 lr: float=1e-1, batch_size: int=32, train_epocs: int=10, 
-                 shuffle: bool=True, torch_threads: int=5, BCE_reduction: str="mean",
-                 pred_thresh: float=0.5, log_fpath: str=None) -> None:
+    def __init__(self, s_cnt: int=10, r_cnt: int=10, w_cnt: int=100, K: int=5, 
+                 w_mean: float, w_str: float, lr: float=1e-1, batch_size: int=32,
+                 train_epocs: int=10, shuffle: bool=True, torch_threads: int=5, 
+                 BCE_reduction: str="mean", pred_thresh: float=0.5, log_fpath: str=None) -> None:
         """
         SourceReceiver Classifier wrapper for piping with sklearn.
         """
