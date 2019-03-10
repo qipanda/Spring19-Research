@@ -222,6 +222,7 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         # Setup logging to file if available
         if self.log_fpath:
             logging.basicConfig(filename=self.log_fpath, level=logging.INFO)
+        logging.info(USE_CUDA)
 
         # Train a new model
         self.model_ = self.returnModel()
