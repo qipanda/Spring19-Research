@@ -66,7 +66,7 @@ sr_class = SourceReceiverClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     torch_threads = 7,
                                     BCE_reduction = "mean",
                                     pred_thresh = 0.5,
-                                    log_fpath = "./logs/sr-cv-20neg.log")
+                                    log_fpath = "./logs/sr-cv-wlowstd-20neg.log")
 
 scoring = {
     "Log-Loss": make_scorer(log_loss),
