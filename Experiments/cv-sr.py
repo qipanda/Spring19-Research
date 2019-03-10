@@ -90,9 +90,9 @@ print("test logloss: {} | Precision: {} | Recall: {} | test F1: {}".\
            recall_score(y_pred, y_test),
            f1_score(y_pred, y_test)))
 
-# Save best estimator
-best_model = gs.best_estimator_
-torch.save(best_model.model_.state_dict(), "sr-best-20neg.pt")
+# # Save best estimator
+# best_model = gs.best_estimator_
+# torch.save(best_model.model_.state_dict(), "sr-best-20neg.pt")
 
 # # load code
 # test = SGNSModel(best_model.embedding_dim, best_model.c_vocab_len, best_model.w_vocab_len)
