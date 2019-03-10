@@ -24,7 +24,7 @@ fcp.convertColToIdx("WORD")
 X = fcp.df.loc[:, ["SOURCE", "RECEIVER", "WORD"]].values
 y = np.ones(X.shape[0])
 
-k = 10
+k = 20
 neg_word_idxs = fcp.returnNumpyNegSamples(k=k,
                                           alpha=0.75,
                                           colname="WORD",
@@ -64,7 +64,7 @@ sr_class = SourceReceiverClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     torch_threads = 7,
                                     BCE_reduction = "mean",
                                     pred_thresh = 0.5,
-                                    log_fpath = "./logs/sr-cv.log")
+                                    log_fpath = "./logs/sr-cv-20neg.log")
 
 scoring = {
     "Log-Loss": make_scorer(log_loss),
@@ -92,7 +92,7 @@ print("test logloss: {} | Precision: {} | Recall: {} | test F1: {}".\
 
 # Save best estimator
 best_model = gs.best_estimator_
-torch.save(best_model.model_.state_dict(), "sr-best.pt")
+torch.save(best_model.model_.state_dict(), "sr-best-20neg.pt")
 
 # # load code
 # test = SGNSModel(best_model.embedding_dim, best_model.c_vocab_len, best_model.w_vocab_len)
