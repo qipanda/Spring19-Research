@@ -175,8 +175,10 @@ class SourceReceiverModel(torch.nn.Module):
         self.w_embeds = torch.nn.Embedding.from_pretrained(
             torch.nn.init.normal_(torch.empty(w_cnt, K, device=DEVICE), w_mean, w_std), freeze=False)
 
-        print(self.s_embeds.weight.device)
-        print(torch.get_num_threads())
+        logging.info("DEVICE: {}".format(self.s_embeds.weight.device))
+        logging.info("DEVICE: {}".format(self.r_embeds.weight.device))
+        logging.info("DEVICE: {}".format(self.w_embeds.weight.device))
+        logging.info("THREADS: {}".format(torch.get_num_threads()))
 
     def forward(self, s: torch.tensor, r: torch.tensor, w: torch.tensor) -> torch.tensor:
         """
