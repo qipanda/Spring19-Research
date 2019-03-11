@@ -58,7 +58,6 @@ _, _, train_idxs, test_idxs = train_test_split(X,
 sr_class = SourceReceiverClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     r_cnt=len(fcp.df["RECEIVER"].unique()),
                                     w_cnt=len(fcp.df["WORD"].unique()),
-                                    nesterov = True
                                     batch_size = 32,
                                     train_epocs = 3,
                                     log_fpath = "./logs/sr-highKs-cv.log")
