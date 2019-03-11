@@ -36,10 +36,10 @@ y_neg = np.zeros(X_neg.shape[0])
 X = np.concatenate((X, X_neg), axis=0)
 y = np.concatenate((y, y_neg), axis=0)
 
-# #TODO GET RID OF TEST
-# X = X[:100, :]
-# y = y[:100]
-# y[-90:] = 0.0
+#TODO GET RID OF TEST
+X = X[:100, :]
+y = y[:100]
+y[-90:] = 0.0
 
 # Get train, val, test splits
 X, X_test, y, y_test = train_test_split(X, 
@@ -58,15 +58,10 @@ _, _, train_idxs, test_idxs = train_test_split(X,
 sr_class = SourceReceiverClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     r_cnt=len(fcp.df["RECEIVER"].unique()),
                                     w_cnt=len(fcp.df["WORD"].unique()),
-                                    w_mean=0,
-                                    w_std=0.1,
+                                    K=50,
                                     batch_size = 32,
-                                    train_epocs = 10,
-                                    shuffle = True,
-                                    torch_threads = 7,
-                                    BCE_reduction = "mean",
-                                    pred_thresh = 0.5,
-                                    log_fpath = "./logs/sr-cv-wlowstd-20neg.log")
+                                    train_epocs = 5,
+                                    log_fpath = "./logs/sr-cv.log")
 
 scoring = {
     "Log-Loss": make_scorer(log_loss),
@@ -74,7 +69,7 @@ scoring = {
     "Recall": make_scorer(recall_score),
     "F1": make_scorer(f1_score),
 }
-param_grid = {"K":[5, 20, 50], "lr":[1.0, 0.1, 0.01]}
+param_grid = {"K":[50], "lr":[1e0], "weight_decay":[1e1, 1e0, 1e-1]}
 gs = GridSearchCV(estimator=sr_class,
                   param_grid=param_grid,
                   scoring=scoring,

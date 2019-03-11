@@ -175,11 +175,6 @@ class SourceReceiverModel(torch.nn.Module):
         self.w_embeds = torch.nn.Embedding.from_pretrained(
             torch.nn.init.normal_(torch.empty(w_cnt, K, device=DEVICE), w_mean, w_std), freeze=False)
 
-        logging.info("DEVICE: {}".format(self.s_embeds.weight.device))
-        logging.info("DEVICE: {}".format(self.r_embeds.weight.device))
-        logging.info("DEVICE: {}".format(self.w_embeds.weight.device))
-        logging.info("THREADS: {}".format(torch.get_num_threads()))
-
     def forward(self, s: torch.tensor, r: torch.tensor, w: torch.tensor) -> torch.tensor:
         """
         Forward pass through SRModel, adds together the s and receiver tensors,
@@ -189,43 +184,67 @@ class SourceReceiverModel(torch.nn.Module):
         s, r, w = s.view(-1, 1), r.view(-1, 1), w.view(-1, 1)
         n = s.size()[0] 
 
+        logging.info("s, r, w devices")
+        logging.info(s.device)
+        logging.info(r.device)
+        logging.info(w.device)
+
         # Add source and receivers, then dot with word vector for all n samples
         sr_embed = self.s_embeds(s) + self.r_embeds(r)
         w_embed = self.w_embeds(w)
         prods = torch.bmm(sr_embed.view(n, 1, -1), w_embed.view(n, -1, 1))
         probs = torch.sigmoid(prods)
 
+        logging.info("sr_embed, w_embed, prods, probs devices")
+        logging.info(sr_embed.device)
+        logging.info(w_embed.device)
+        logging.info(prods.device)
+        logging.info(probs.device)
+
         return probs.view(n)
 
 class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, s_cnt: int=10, r_cnt: int=10, w_cnt: int=100, K: int=5, 
                  s_mean: float=0.0, s_std: float=1.0, r_mean: float=0.0, r_std: float=1.0,
-                 w_mean: float=0.0, w_std: float=1.0, lr: float=1e-1, batch_size: int=32,
-                 train_epocs: int=10, shuffle: bool=True, torch_threads: int=5, 
-                 BCE_reduction: str="mean", pred_thresh: float=0.5, log_fpath: str=None) -> None:
+                 w_mean: float=0.0, w_std: float=1.0, lr: float=1e-1, momentum: float=0.0, 
+                 weight_decay: float=0.0, dampening: float=0.0, nesterov: bool=False,
+                 batch_size: int=32, train_epocs: int=10, shuffle: bool=True, 
+                 torch_threads: int=12, BCE_reduction: str="mean", pred_thresh: float=0.5, log_fpath: str=None) -> None:
         """
         SourceReceiver Classifier wrapper for piping with sklearn.
         """
+        # Model parameters
         self.s_cnt = s_cnt
+        self.r_cnt = r_cnt
+        self.w_cnt = w_cnt
+        self.K = K
         self.s_mean = s_mean
         self.s_std = s_std
-        self.r_cnt = r_cnt
         self.r_mean = r_mean
         self.r_std = r_std
-        self.w_cnt = w_cnt
         self.w_mean = w_mean
         self.w_std = w_std
-        self.K = K
+
+        # SGD optimization parameters
         self.lr = lr
+        self.momentum = momentum
+        self.weight_decay = weight_decay
+        self.dampening = dampening
+        self.nesterov = nesterov
+
+        # Other training parameters
         self.batch_size = batch_size
         self.train_epocs = train_epocs
         self.shuffle = shuffle
         self.torch_threads = torch_threads
         self.BCE_reduction = BCE_reduction
-        self.pred_thresh = pred_thresh
-        self.log_fpath = log_fpath
-
         self.loss_fn = torch.nn.BCELoss(reduction=self.BCE_reduction)
+
+        # Prediction parameters
+        self.pred_thresh = pred_thresh
+
+        # Logging parameters
+        self.log_fpath = log_fpath
 
     def returnModel(self):
         """
@@ -247,9 +266,10 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         # Train a new model
         self.model_ = self.returnModel()
 
-        # set max threads and initialize the SGD optimizer
-        # torch.set_num_threads(self.torch_threads)
-        optimizer = torch.optim.SGD(self.model_.parameters(), lr=self.lr)
+        # Initialize the SGD optimizer
+        optimizer = torch.optim.SGD(self.model_.parameters(), 
+            lr=self.lr, momentum=self.momentum, weight_decay=self.weight_decay,
+            dampening=self.dampening, nesterov=self.nesterov)
 
         # set idxs to iterate over per epoch
         idxs = np.arange(y.size)
@@ -281,14 +301,16 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
 
                 # Compute loss function
                 loss = self.loss_fn(pos_prob, y_target_tensor)
+                logging.info("loss device")
+                logging.info(loss.device)
 
                 # Back pass then update based on gradient from back pass
                 loss.backward()
                 optimizer.step()
 
                 # Log stuff
-                logging.info("K:{} | lr:{:.2f} | Epoch:{} | Batch:{} | Train-log-loss:{:.4f}".\
-                    format(self.K, self.lr, epoch, i/self.batch_size, loss.item()))
+                # logging.info("K:{} | lr:{:.2f} | Epoch:{} | Batch:{} | Train-log-loss:{:.4f}".\
+                    # format(self.K, self.lr, epoch, i/self.batch_size, loss.item()))
             
         return self
 
