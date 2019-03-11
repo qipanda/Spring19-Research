@@ -283,7 +283,7 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
                 self.model_.zero_grad()
 
                 # Forward pass to get prob of pos
-                pos_prob = self.model_(s=x[:, 0], r=x[:, 1], w=x[:, 2])
+                pos_prob = self.model_(x)
 
                 # Compute loss function
                 loss = self.loss_fn(pos_prob, y_target)
