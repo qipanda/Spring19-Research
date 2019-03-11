@@ -58,7 +58,7 @@ _, _, train_idxs, test_idxs = train_test_split(X,
 sr_class = SourceReceiverClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     r_cnt=len(fcp.df["RECEIVER"].unique()),
                                     w_cnt=len(fcp.df["WORD"].unique()),
-                                    batch_size = 16,
+                                    batch_size = 32,
                                     train_epocs = 1,
                                     log_fpath = "./logs/sr-cv-junk-v2.log")
 

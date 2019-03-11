@@ -1,3 +1,4 @@
+import gc
 import itertools
 import logging
 import pandas as pd
@@ -296,6 +297,11 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
                 logging.info("K:{} | lr:{:.2f} | wd:{}".format(self.K, self.lr, self.weight_decay)\
                     + " | Epoch:{} | Batch:{}".format(epoch, i/self.batch_size) \
                     + " | Train-log-loss:{:.4f}".format(loss.item()))
+
+        # Free memory of training data and force garbage collection
+        del X
+        del y
+        gc.collect()
 
         return self
 
