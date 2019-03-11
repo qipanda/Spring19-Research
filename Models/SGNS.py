@@ -294,10 +294,9 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
                 optimizer.step()
 
                 # Log stuff
-                logging.info("""K:{} | lr:{:.2f} | wd:{:.2f} | Epoch:{} |
-                                Batch:{} | Train-log-loss:{:.4f}""".\
-                    format(self.K, self.lr, self.weight_decay, epoch, 
-                           i/self.batch_size, loss.item()))
+                logging.info("K:{} | lr:{:.2f} | wd:{}".format(self.K, self.lr, self.weight_decay)\
+                    + " | Epoch:{} | Batch:{}".format(epoch, i/self.batch_size) \
+                    + " | Train-log-loss:{:.4f}".format(loss.item()))
             
         return self
 

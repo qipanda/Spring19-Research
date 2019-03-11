@@ -69,7 +69,7 @@ scoring = {
     "Recall": make_scorer(recall_score),
     "F1": make_scorer(f1_score),
 }
-param_grid = {"K":[50], "lr":[1e0], "weight_decay":[1e0, 1e-1, 1e-2]}
+param_grid = {"K":[50], "lr":[1e0], "weight_decay":[1e-2, 1e-3, 1e-4]}
 gs = GridSearchCV(estimator=sr_class,
                   param_grid=param_grid,
                   scoring=scoring,
