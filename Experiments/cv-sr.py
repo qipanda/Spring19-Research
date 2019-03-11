@@ -58,10 +58,10 @@ _, _, train_idxs, test_idxs = train_test_split(X,
 sr_class = SourceReceiverClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     r_cnt=len(fcp.df["RECEIVER"].unique()),
                                     w_cnt=len(fcp.df["WORD"].unique()),
-                                    K=50,
+                                    nesterov = True
                                     batch_size = 32,
-                                    train_epocs = 5,
-                                    log_fpath = "./logs/sr-wd-cv.log")
+                                    train_epocs = 3,
+                                    log_fpath = "./logs/sr-highKs-cv.log")
 
 scoring = {
     "Log-Loss": make_scorer(log_loss),
@@ -69,7 +69,12 @@ scoring = {
     "Recall": make_scorer(recall_score),
     "F1": make_scorer(f1_score),
 }
-param_grid = {"K":[50], "lr":[1e0], "weight_decay":[1e-2, 1e-3, 1e-4]}
+param_grid = {
+    "K":[300, 500],
+    "lr":[5e-1],
+    "weight_decay":[1e-2, 1e-3],
+}
+
 gs = GridSearchCV(estimator=sr_class,
                   param_grid=param_grid,
                   scoring=scoring,
