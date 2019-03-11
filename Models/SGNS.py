@@ -305,11 +305,9 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         """
         X = torch.tensor(X, device=DEVICE)
         if USE_CUDA:
-            y_pred = self.model_(s=X[:, 0], r=X[:, 1], w=X[:, 2])\
-                .cpu().detach().numpy() > self.pred_thresh
+            y_pred = self.model_(X).cpu().detach().numpy() > self.pred_thresh
         else:
-            y_pred = self.model_(s=X[:, 0], r=X[:, 1], w=X[:, 2])\
-                .detach().numpy() > self.pred_thresh
+            y_pred = self.model_(X).detach().numpy() > self.pred_thresh
 
         return y_pred
 
@@ -319,11 +317,9 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         """
         X = torch.tensor(X, device=DEVICE)
         if USE_CUDA:
-            y_pred = self.model_(s=X[:, 0], r=X[:, 1], w=X[:, 2])\
-                .cpu().detach().numpy()
+            y_pred = self.model_(X).cpu().detach().numpy()
         else:
-            y_pred = self.model_(s=X[:, 0], r=X[:, 1], w=X[:, 2])\
-                .detach().numpy()
+            y_pred = self.model_(X).detach().numpy()
 
         return y_pred
 
