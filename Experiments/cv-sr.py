@@ -8,8 +8,7 @@ from Preprocessing.FullContextProcessor import FullContextProcessor
 
 # Import installed modules
 from sklearn.model_selection import GridSearchCV, train_test_split
-from sklearn.metrics import make_scorer, log_loss, f1_score, precision_score, 
-    recall_score, accuracy_score
+from sklearn.metrics import make_scorer, log_loss, f1_score, precision_score, recall_score, accuracy_score
 import torch
 import numpy as np
 
