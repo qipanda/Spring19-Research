@@ -184,22 +184,11 @@ class SourceReceiverModel(torch.nn.Module):
         s, r, w = s.view(-1, 1), r.view(-1, 1), w.view(-1, 1)
         n = s.size()[0] 
 
-        logging.info("s, r, w devices")
-        logging.info(s.device)
-        logging.info(r.device)
-        logging.info(w.device)
-
         # Add source and receivers, then dot with word vector for all n samples
         sr_embed = self.s_embeds(s) + self.r_embeds(r)
         w_embed = self.w_embeds(w)
         prods = torch.bmm(sr_embed.view(n, 1, -1), w_embed.view(n, -1, 1))
         probs = torch.sigmoid(prods)
-
-        logging.info("sr_embed, w_embed, prods, probs devices")
-        logging.info(sr_embed.device)
-        logging.info(w_embed.device)
-        logging.info(prods.device)
-        logging.info(probs.device)
 
         return probs.view(n)
 
@@ -301,16 +290,14 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
 
                 # Compute loss function
                 loss = self.loss_fn(pos_prob, y_target_tensor)
-                logging.info("loss device")
-                logging.info(loss.device)
 
                 # Back pass then update based on gradient from back pass
                 loss.backward()
                 optimizer.step()
 
                 # Log stuff
-                # logging.info("K:{} | lr:{:.2f} | Epoch:{} | Batch:{} | Train-log-loss:{:.4f}".\
-                    # format(self.K, self.lr, epoch, i/self.batch_size, loss.item()))
+                logging.info("K:{} | lr:{:.2f} | Epoch:{} | Batch:{} | Train-log-loss:{:.4f}".\
+                    format(self.K, self.lr, epoch, i/self.batch_size, loss.item()))
             
         return self
 
