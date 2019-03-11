@@ -298,36 +298,32 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
                     + " | Epoch:{} | Batch:{}".format(epoch, i/self.batch_size) \
                     + " | Train-log-loss:{:.4f}".format(loss.item()))
 
-        # Free memory of training data and force garbage collection
-        del X
-        del y
-        gc.collect()
+        # Place model back on CPU now that training is done (saving memory)
+        self.model_.cpu()
+        # # Free memory of training data and force garbage collection
+        # del X
+        # del y
+        # gc.collect()
 
         return self
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """
         Return list of predictions based on [self.pred_thresh]
+        
+        self.model_ is assumed on cpu after training to save memory
         """
-        X = torch.tensor(X, device=DEVICE)
-        if USE_CUDA:
-            y_pred = self.model_(X).cpu().detach().numpy() > self.pred_thresh
-        else:
-            y_pred = self.model_(X).detach().numpy() > self.pred_thresh
-
-        return y_pred
+        X = torch.tensor(X, device=torch.device("cpu"))
+        return self.model_(X).detach().numpy() > self.pred_thresh
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         """
         Return list of probabilitic predictions
-        """
-        X = torch.tensor(X, device=DEVICE)
-        if USE_CUDA:
-            y_pred = self.model_(X).cpu().detach().numpy()
-        else:
-            y_pred = self.model_(X).detach().numpy()
 
-        return y_pred
+        self.model_ is assumed on cpu after training to save memory
+        """
+        X = torch.tensor(X, device=torch.device("cpu"))
+        return self.model_(X).detach().numpy()
 
     def score(self, X: np.ndarray, y: np.ndarray) -> float:
         """
