@@ -87,10 +87,10 @@ gs.fit(X, y)
 y_pred = gs.predict(X_test)
 print("test logloss: {} | Precision: {} | Recall: {} | test F1: {}".\
     format(log_loss(y_test, y_pred), 
-           accuracy_score(y_test, y_pred)
+           accuracy_score(y_test, y_pred),
            precision_score(y_test, y_pred), 
            recall_score(y_test, y_pred),
-           f1_score(y_test, y_pred)))
+           f1_score(y_test, y_pred)),)
 
 # # Save best estimator
 # best_model = gs.best_estimator_
