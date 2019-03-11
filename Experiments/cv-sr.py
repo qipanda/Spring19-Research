@@ -60,7 +60,7 @@ sr_class = SourceReceiverClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     w_cnt=len(fcp.df["WORD"].unique()),
                                     batch_size = 32,
                                     train_epocs = 1,
-                                    log_fpath = "./logs/sr-cv-junk.log")
+                                    log_fpath = "./logs/sr-cv-junk-v2.log")
 
 scoring = {
     "Log-Loss": make_scorer(log_loss),
@@ -70,7 +70,7 @@ scoring = {
     "F1": make_scorer(f1_score),
 }
 param_grid = {
-    "K":[50, 100, 150],
+    "K":[100, 150],
     "lr":[1e0, 5e-1, 1e-1],
 }
 

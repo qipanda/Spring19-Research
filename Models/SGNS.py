@@ -175,16 +175,20 @@ class SourceReceiverModel(torch.nn.Module):
         self.w_embeds = torch.nn.Embedding.from_pretrained(
             torch.nn.init.normal_(torch.empty(w_cnt, K, device=DEVICE), w_mean, w_std), freeze=False)
 
-    def forward(self, s: torch.tensor, r: torch.tensor, w: torch.tensor) -> torch.tensor:
+    def forward(self, X: torch.tensor) -> torch.tensor:
         """
         Forward pass through SRModel, adds together the s and receiver tensors,
         applying a non-linearity to each element, then dotting it with the word tensor
+        
+        X is assumned n x 3 where x is the batch size, 1st col is s, 2nd is r, 3rd is w
         """
         # Add source and receivers, then dot with word vector for all n samples
-        sr_embed = self.s_embeds(s.view(-1, 1)) + self.r_embeds(r.view(-1, 1))
-        w_embed = self.w_embeds(w.view(-1, 1))
-        n = s.view(-1, 1).size()[0]
-        return torch.sigmoid(torch.bmm(sr_embed.view(n, 1, -1), w_embed.view(n, -1, 1))).view(n)
+        n = X.size()[0]
+        prod = torch.bmm(
+            (self.s_embeds(X[:, 0]) + self.r_embeds(X[:, 1])).view(n, 1, -1),
+            (self.w_embeds(X[:, 2])).view(n, -1, 1))
+
+        return torch.sigmoid(prod).view(n)
 
 class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, s_cnt: int=10, r_cnt: int=10, w_cnt: int=100, K: int=5, 
@@ -292,7 +296,7 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
                 logging.info("K:{} | lr:{:.2f} | wd:{}".format(self.K, self.lr, self.weight_decay)\
                     + " | Epoch:{} | Batch:{}".format(epoch, i/self.batch_size) \
                     + " | Train-log-loss:{:.4f}".format(loss.item()))
-            
+
         return self
 
     def predict(self, X: np.ndarray) -> np.ndarray:
