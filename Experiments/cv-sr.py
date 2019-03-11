@@ -85,7 +85,7 @@ gs.fit(X, y)
 
 # # Best model is automatically retrained, now get test performance
 y_pred = gs.predict(X_test)
-print("test logloss: {} | Precision: {} | Recall: {} | test F1: {}".\
+print("test logloss: {} | Acc: {} | Prec: {} | Rec: {} | test F1: {}".\
     format(log_loss(y_test, y_pred), 
            accuracy_score(y_test, y_pred),
            precision_score(y_test, y_pred), 
