@@ -252,6 +252,10 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
             logging.basicConfig(filename=self.log_fpath, level=logging.INFO)
         logging.info("USING CUDA: {}".format(USE_CUDA))
 
+        # Convert X and y to tensors
+        X = torch.tensor(X, device=DEVICE)
+        y = torch.tensor(y, device=DEVICE)
+
         # Train a new model
         self.model_ = self.returnModel()
 
@@ -261,16 +265,16 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
             dampening=self.dampening, nesterov=self.nesterov)
 
         # set idxs to iterate over per epoch
-        idxs = np.arange(y.size)
+        idxs = torch.arange(y.size()[0])
 
         for epoch in range(self.train_epocs):
             # Shuffle idxs inplace if chosen to do so
             if self.shuffle:
-                np.random.shuffle(idxs)
+                idxs = idxs[torch.randperm(y.size()[0])]
 
             for i in itertools.count(0, self.batch_size):
                 # Check if gone through whole dataset already
-                if i >= y.size:
+                if i >= y.size()[0]:
                     break
 
                 # Get batch for gradient update
@@ -279,25 +283,21 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
                 # Before new batch, zero old gradient instance built up in model
                 self.model_.zero_grad()
 
-                # get input and target as torch tensors, use GPU is available
-                s = torch.tensor([x[:, 0]], device=DEVICE)
-                r = torch.tensor([x[:, 1]], device=DEVICE)
-                w = torch.tensor([x[:, 2]], device=DEVICE)
-                y_target_tensor = torch.tensor([y_target], device=DEVICE).view(-1)
-
                 # Forward pass to get prob of pos
-                pos_prob = self.model_(s, r, w)
+                pos_prob = self.model_(s=x[:, 0], r=x[:, 1], w=x[:, 2])
 
                 # Compute loss function
-                loss = self.loss_fn(pos_prob, y_target_tensor)
+                loss = self.loss_fn(pos_prob, y_target)
 
                 # Back pass then update based on gradient from back pass
                 loss.backward()
                 optimizer.step()
 
                 # Log stuff
-                logging.info("K:{} | lr:{:.2f} | Epoch:{} | Batch:{} | Train-log-loss:{:.4f}".\
-                    format(self.K, self.lr, epoch, i/self.batch_size, loss.item()))
+                logging.info("""K:{} | lr:{:.2f} | wd:{:.2f} | Epoch:{} |
+                                Batch:{} | Train-log-loss:{:.4f}""".\
+                    format(self.K, self.lr, self.weight_decay, epoch, 
+                           i/self.batch_size, loss.item()))
             
         return self
 
