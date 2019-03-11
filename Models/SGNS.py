@@ -180,17 +180,11 @@ class SourceReceiverModel(torch.nn.Module):
         Forward pass through SRModel, adds together the s and receiver tensors,
         applying a non-linearity to each element, then dotting it with the word tensor
         """
-        # Force nx1 shape, and save the shape
-        s, r, w = s.view(-1, 1), r.view(-1, 1), w.view(-1, 1)
-        n = s.size()[0] 
-
         # Add source and receivers, then dot with word vector for all n samples
-        sr_embed = self.s_embeds(s) + self.r_embeds(r)
-        w_embed = self.w_embeds(w)
-        prods = torch.bmm(sr_embed.view(n, 1, -1), w_embed.view(n, -1, 1))
-        probs = torch.sigmoid(prods)
-
-        return probs.view(n)
+        sr_embed = self.s_embeds(s.view(-1, 1)) + self.r_embeds(r.view(-1, 1))
+        w_embed = self.w_embeds(w.view(-1, 1))
+        n = s.view(-1, 1).size()[0]
+        return torch.sigmoid(torch.bmm(sr_embed.view(n, 1, -1), w_embed.view(n, -1, 1))).view(n)
 
 class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, s_cnt: int=10, r_cnt: int=10, w_cnt: int=100, K: int=5, 
@@ -198,7 +192,8 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
                  w_mean: float=0.0, w_std: float=1.0, lr: float=1e-1, momentum: float=0.0, 
                  weight_decay: float=0.0, dampening: float=0.0, nesterov: bool=False,
                  batch_size: int=32, train_epocs: int=10, shuffle: bool=True, 
-                 torch_threads: int=12, BCE_reduction: str="mean", pred_thresh: float=0.5, log_fpath: str=None) -> None:
+                 torch_threads: int=12, BCE_reduction: str="mean", pred_thresh: float=0.5, 
+                 log_fpath: str=None) -> None:
         """
         SourceReceiver Classifier wrapper for piping with sklearn.
         """
@@ -304,13 +299,13 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         """
         Return list of predictions based on [self.pred_thresh]
         """
-        s = torch.tensor([X[:, 0]], device=DEVICE)
-        r = torch.tensor([X[:, 1]], device=DEVICE)
-        w = torch.tensor([X[:, 2]], device=DEVICE)
+        X = torch.tensor(X, device=DEVICE)
         if USE_CUDA:
-            y_pred = self.model_(s, r, w).cpu().detach().numpy() > self.pred_thresh
+            y_pred = self.model_(s=X[:, 0], r=X[:, 1], w=X[:, 2])\
+                .cpu().detach().numpy() > self.pred_thresh
         else:
-            y_pred = self.model_(s, r, w).detach().numpy() > self.pred_thresh
+            y_pred = self.model_(s=X[:, 0], r=X[:, 1], w=X[:, 2])\
+                .detach().numpy() > self.pred_thresh
 
         return y_pred
 
@@ -318,13 +313,13 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         """
         Return list of probabilitic predictions
         """
-        s = torch.tensor([X[:, 0]], device=DEVICE)
-        r = torch.tensor([X[:, 1]], device=DEVICE)
-        w = torch.tensor([X[:, 2]], device=DEVICE)
+        X = torch.tensor(X, device=DEVICE)
         if USE_CUDA:
-            y_pred = self.model_(s, r, w).cpu().detach().numpy()
+            y_pred = self.model_(s=X[:, 0], r=X[:, 1], w=X[:, 2])\
+                .cpu().detach().numpy()
         else:
-            y_pred = self.model_(s, r, w).detach().numpy()
+            y_pred = self.model_(s=X[:, 0], r=X[:, 1], w=X[:, 2])\
+                .detach().numpy()
 
         return y_pred
 

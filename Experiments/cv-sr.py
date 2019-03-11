@@ -8,7 +8,8 @@ from Preprocessing.FullContextProcessor import FullContextProcessor
 
 # Import installed modules
 from sklearn.model_selection import GridSearchCV, train_test_split
-from sklearn.metrics import make_scorer, log_loss, f1_score, precision_score, recall_score
+from sklearn.metrics import make_scorer, log_loss, f1_score, precision_score, 
+    recall_score, accuracy_score
 import torch
 import numpy as np
 
@@ -60,18 +61,18 @@ sr_class = SourceReceiverClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     w_cnt=len(fcp.df["WORD"].unique()),
                                     batch_size = 32,
                                     train_epocs = 3,
-                                    log_fpath = "./logs/sr-highKs-cv.log")
+                                    log_fpath = "./logs/sr-cv-junk.log")
 
 scoring = {
     "Log-Loss": make_scorer(log_loss),
+    "Accuracy": make_scorer(accuracy_score),
     "Precision": make_scorer(precision_score),
     "Recall": make_scorer(recall_score),
     "F1": make_scorer(f1_score),
 }
 param_grid = {
-    "K":[300, 500],
-    "lr":[5e-1],
-    "weight_decay":[1e-2, 1e-3],
+    "K":[50, 100],
+    "lr":[1e0, 1e-1],
 }
 
 gs = GridSearchCV(estimator=sr_class,
@@ -86,10 +87,11 @@ gs.fit(X, y)
 # # Best model is automatically retrained, now get test performance
 y_pred = gs.predict(X_test)
 print("test logloss: {} | Precision: {} | Recall: {} | test F1: {}".\
-    format(log_loss(y_pred, y_test), 
-           precision_score(y_pred, y_test), 
-           recall_score(y_pred, y_test),
-           f1_score(y_pred, y_test)))
+    format(log_loss(y_test, y_pred), 
+           accuracy_score(y_test, y_pred)
+           precision_score(y_test, y_pred), 
+           recall_score(y_test, y_pred),
+           f1_score(y_test, y_pred)))
 
 # # Save best estimator
 # best_model = gs.best_estimator_
