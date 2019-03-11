@@ -59,7 +59,7 @@ sr_class = SourceReceiverClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     r_cnt=len(fcp.df["RECEIVER"].unique()),
                                     w_cnt=len(fcp.df["WORD"].unique()),
                                     batch_size = 32,
-                                    train_epocs = 3,
+                                    train_epocs = 1,
                                     log_fpath = "./logs/sr-cv-junk.log")
 
 scoring = {
@@ -70,8 +70,8 @@ scoring = {
     "F1": make_scorer(f1_score),
 }
 param_grid = {
-    "K":[50, 100],
-    "lr":[1e0, 1e-1],
+    "K":[50, 100, 150],
+    "lr":[1e0, 5e-1, 1e-1],
 }
 
 gs = GridSearchCV(estimator=sr_class,
