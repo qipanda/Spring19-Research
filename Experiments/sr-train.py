@@ -43,6 +43,7 @@ sr_class = SourceReceiverClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     batch_size = 32,
                                     train_epocs = 1,
                                     log_fpath = "./logs/sr-train.log")
+sr_class.fit(X, y)
 
 # Save best estimator
 torch.save(sr_class.model_.state_dict(), "sr-best-20neg.pt")
