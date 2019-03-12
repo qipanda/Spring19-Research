@@ -344,39 +344,3 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         """
         y_pred = self.predict(X)
         return np.mean(y_pred == y)
-
-class SourceReceiverNonlinearModel(SourceReceiverModel):
-    def __init__(self, s_cnt: int, r_cnt: int, w_cnt: int, K: int, alpha: float) -> None:
-        super().__init__(s_cnt, r_cnt, w_cnt, K)
-        self.ELU = torch.nn.ELU(alpha=alpha)
-
-    def forward(self, s: torch.tensor, r: torch.tensor, w: torch.tensor) -> torch.tensor:
-        """
-        Forward pass through SRNonlinear model
-        """
-        # Force nx1 shape, and save the shape
-        s, r, w = s.view(-1, 1), r.view(-1, 1), w.view(-1, 1)
-        n = s.size()[0] 
-
-        # Add source and receivers, then dot with word vector for all n samples
-        sr_embed = self.ELU(self.s_embeds(s) + self.r_embeds(r))
-        w_embed = self.w_embeds(w)
-        prods = torch.bmm(sr_embed.view(n, 1, -1), w_embed.view(n, -1, 1))
-        probs = torch.sigmoid(prods)
-
-        return probs.view(n)
-
-class SourceReceiverNonlinearClassifier(SourceReceiverClassifier):
-    def __init__(self, s_cnt: int=10, r_cnt: int=10, w_cnt: int=100, K: int=5, 
-                 alpha: float=1.0, lr: float=1e-1, batch_size: int=32, train_epocs: int=10, 
-                 shuffle: bool=True, torch_threads: int=5, BCE_reduction: str="mean",
-                 pred_thresh: float=0.5, log_fpath: str=None) -> None:
-        """
-        SourceReceiver Classifier wrapper for piping with sklearn.
-        """
-        super().__init__(s_cnt, r_cnt, w_cnt, K, lr, batch_size, train_epocs, 
-            shuffle, torch_threads, BCE_reduction, pred_thresh, log_fpath)
-        self.alpha = alpha
-
-    def returnModel(self):
-        return SourceReceiverNonlinearModel(self.s_cnt, self.r_cnt, self.w_cnt, self.K, self.alpha)
