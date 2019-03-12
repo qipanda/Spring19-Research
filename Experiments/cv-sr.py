@@ -70,8 +70,8 @@ scoring = {
     "F1": make_scorer(f1_score),
 }
 param_grid = {
-    "K":[100, 150],
-    "lr":[1e0, 5e-1, 1e-1],
+    "K":[100],
+    "lr":[5e-1],
 }
 
 gs = GridSearchCV(estimator=sr_class,
