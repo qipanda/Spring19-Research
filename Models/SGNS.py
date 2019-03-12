@@ -250,7 +250,7 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         # Setup logging to file if available
         if self.log_fpath:
             logging.basicConfig(filename=self.log_fpath, level=logging.INFO)
-        logging.info("K={d}|lr={:.2E}|wd={:.2E}|CUDA:{}".format(
+        logging.info("K={}|lr={:.2E}|wd={:.2E}|CUDA:{}".format(
             self.K, self.lr, self.weight_decay, USE_CUDA))
 
         # Convert X and y to tensors
@@ -269,7 +269,7 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         idxs = torch.arange(y.size()[0])
 
         for epoch in range(self.train_epocs):
-            logging.info("\tepoch:{d}".format(epoch))
+            logging.info("\tepoch:{}".format(epoch))
             # Shuffle idxs inplace if chosen to do so
             if self.shuffle:
                 idxs = idxs[torch.randperm(y.size()[0])]
@@ -296,7 +296,7 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
                 optimizer.step()
 
                 # Log stuff
-                logging.info("\t\tBatch={d}|Train-log-loss:{:.4f}".format(
+                logging.info("\t\tBatch={}|Train-log-loss:{:.4f}".format(
                     int(i/self.batch_size), loss.item()))
 
         # Free memory of train data and unused cached gpu stuff now that training is done
