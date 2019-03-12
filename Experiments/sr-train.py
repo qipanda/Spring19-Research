@@ -39,7 +39,7 @@ sr_class = SourceReceiverClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     w_std=0.1,
                                     K=50,
                                     lr=5e-1,
-                                    weight_decay=1e-5,
+                                    weight_decay=1e-6,
                                     batch_size = 32,
                                     train_epocs = 1,
                                     log_fpath = "./logs/sr-train.log")
