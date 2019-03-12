@@ -176,9 +176,6 @@ class SourceReceiverModel(torch.nn.Module):
         self.w_embeds = torch.nn.Embedding.from_pretrained(
             torch.nn.init.normal_(torch.empty(w_cnt, K, device=DEVICE), w_mean, w_std), freeze=False)
 
-        logging.info("Model init GPU usage: {}".format(torch.cuda.memory_allocated(device=DEVICE)))
-        logging.info("Model init GPU cache usage: {}".format(torch.cuda.memory_cached(device=DEVICE)))
-
     def forward(self, X: torch.tensor) -> torch.tensor:
         """
         Forward pass through SRModel, adds together the s and receiver tensors,
@@ -186,10 +183,6 @@ class SourceReceiverModel(torch.nn.Module):
         
         X is assumned n x 3 where x is the batch size, 1st col is s, 2nd is r, 3rd is w
         """
-        logging.info("forward-pre GPU usage: {}".format(torch.cuda.memory_allocated(device=DEVICE)))
-        logging.info("forward-pre GPU cache usage: {}".format(torch.cuda.memory_cached(device=DEVICE)))
-
-        # Add source and receivers, then dot with word vector for all n samples
         n = X.size()[0]
         prod = torch.bmm(
             (self.s_embeds(X[:, 0]) + self.r_embeds(X[:, 1])).view(n, 1, -1),
@@ -202,9 +195,9 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
                  s_mean: float=0.0, s_std: float=1.0, r_mean: float=0.0, r_std: float=1.0,
                  w_mean: float=0.0, w_std: float=1.0, lr: float=1e-1, momentum: float=0.0, 
                  weight_decay: float=0.0, dampening: float=0.0, nesterov: bool=False,
-                 batch_size: int=32, train_epocs: int=10, shuffle: bool=True, 
-                 torch_threads: int=12, BCE_reduction: str="mean", pred_thresh: float=0.5, 
-                 log_fpath: str=None) -> None:
+                 batch_size: int=32, pred_batch_size: int=10000, train_epocs: int=10, 
+                 shuffle: bool=True, torch_threads: int=12, BCE_reduction: str="mean",
+                 pred_thresh: float=0.5, log_fpath: str=None) -> None:
         """
         SourceReceiver Classifier wrapper for piping with sklearn.
         """
@@ -229,6 +222,7 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
 
         # Other training parameters
         self.batch_size = batch_size
+        self.pred_batch_size = pred_batch_size
         self.train_epocs = train_epocs
         self.shuffle = shuffle
         self.torch_threads = torch_threads
@@ -262,9 +256,6 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         X = torch.tensor(X, device=DEVICE)
         y = torch.tensor(y, device=DEVICE)
 
-        logging.info("X,y init GPU usage: {}".format(torch.cuda.memory_allocated(device=DEVICE)))
-        logging.info("X,y init GPU cache usage: {}".format(torch.cuda.memory_cached(device=DEVICE)))
-
         # Train a new model
         self.model_ = self.returnModel()
 
@@ -293,8 +284,6 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
                 self.model_.zero_grad()
 
                 # Forward pass to get prob of pos
-                logging.info("forward-pre GPU usage: {}".format(torch.cuda.memory_allocated(device=DEVICE)))
-                logging.info("forward-pre GPU cache usage: {}".format(torch.cuda.memory_cached(device=DEVICE)))
                 pos_prob = self.model_(x)
 
                 # Compute loss function
@@ -303,17 +292,14 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
                 # Back pass then update based on gradient from back pass
                 loss.backward()
                 optimizer.step()
-                logging.info("forward-post GPU usage: {}".format(torch.cuda.memory_allocated(device=DEVICE)))
-                logging.info("forward-post GPU cache usage: {}".format(torch.cuda.memory_cached(device=DEVICE)))
 
-                # # Log stuff
-                # logging.info("K:{} | lr:{:.2f} | wd:{}".format(self.K, self.lr, self.weight_decay)\
-                #     + " | Epoch:{} | Batch:{}".format(epoch, i/self.batch_size) \
-                #     + " | Train-log-loss:{:.4f}".format(loss.item()))
+                # Log stuff
+                logging.info("K:{} | lr:{:.2f} | wd:{}".format(self.K, self.lr, self.weight_decay)\
+                    + " | Epoch:{} | Batch:{}".format(epoch, i/self.batch_size) \
+                    + " | Train-log-loss:{:.4f}".format(loss.item()))
 
-        # Place model back on CPU now that training is done (saving memory)
-        self.model_.cpu()
-        # # Free memory of training data and force garbage collection
+        # Free memory of cached gpu stuff now that training is done
+        torch.cuda.empty_cache()
         # del X
         # del y
         # gc.collect()
@@ -323,20 +309,32 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
     def predict(self, X: np.ndarray) -> np.ndarray:
         """
         Return list of predictions based on [self.pred_thresh]
-        
-        self.model_ is assumed on cpu after training to save memory
         """
-        X = torch.tensor(X, device=torch.device("cpu"))
-        return self.model_(X).detach().numpy() > self.pred_thresh
+        y_pred = np.empty(0)
+        for i in itertools.count(0, self.pred_batch_size):
+            if i >= X.shape[0]:
+                break
+
+            x = torch.tensor(X[i:i+self.pred_batch_size, :], device=DEVICE)
+            y_batch_pred = self.model_(x).cpu().detach().numpy() > self.pred_thresh
+            y_pred = np.concatenate((y_pred, y_batch_pred))
+
+        return y_pred
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         """
         Return list of probabilitic predictions
-
-        self.model_ is assumed on cpu after training to save memory
         """
-        X = torch.tensor(X, device=torch.device("cpu"))
-        return self.model_(X).detach().numpy()
+        y_pred = np.empty(0)
+        for i in itertools.count(0, self.pred_batch_size):
+            if i >= X.shape[0]:
+                break
+
+            x = torch.tensor(X[i:i+self.pred_batch_size, :], device=DEVICE)
+            y_batch_pred = self.model_(x).cpu().detach().numpy()
+            y_pred = np.concatenate((y_pred, y_batch_pred))
+
+        return y_pred
 
     def score(self, X: np.ndarray, y: np.ndarray) -> float:
         """
