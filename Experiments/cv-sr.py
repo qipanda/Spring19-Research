@@ -58,12 +58,13 @@ _, _, train_idxs, test_idxs = train_test_split(X,
 sr_class = SourceReceiverClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     r_cnt=len(fcp.df["RECEIVER"].unique()),
                                     w_cnt=len(fcp.df["WORD"].unique()),
+                                    w_std=0.1
                                     batch_size = 32,
                                     train_epocs = 1,
-                                    log_fpath = "./logs/sr-cv-wd.log")
+                                    log_fpath = "./logs/sr-cv-wd-low_w_std.log")
 
 scoring = {
-    "Log-Loss": make_scorer(log_loss),
+    "Log-Loss": make_scorer(log_loss, greater_is_better=False),
     "Accuracy": make_scorer(accuracy_score),
     "Precision": make_scorer(precision_score),
     "Recall": make_scorer(recall_score),
@@ -72,7 +73,7 @@ scoring = {
 param_grid = {
     "K":[50],
     "lr":[5e-1],
-    "weight_decay":[1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6]
+    "weight_decay":[1e-2, 1e-3, 1e-4, 1e-5, 1e-6],
 }
 
 gs = GridSearchCV(estimator=sr_class,
