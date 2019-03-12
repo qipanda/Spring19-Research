@@ -185,14 +185,14 @@ class SourceReceiverModel(torch.nn.Module):
         """
         logging.info("pre-forward | allocated mem:{}GB | cached mem:{}GB".\
             format(torch.cuda.memory_allocated(device=DEVICE)/1e9,
-                   torch.cuda.cache_allocated(device=DEVICE)/1e9))
+                   torch.cuda.memory_cached(device=DEVICE)/1e9))
         n = X.size()[0]
         prod = torch.bmm(
             (self.s_embeds(X[:, 0]) + self.r_embeds(X[:, 1])).view(n, 1, -1),
             (self.w_embeds(X[:, 2])).view(n, -1, 1))
         logging.info("post-forward | allocated mem:{}GB | cached mem:{}GB".\
             format(torch.cuda.memory_allocated(device=DEVICE)/1e9,
-                   torch.cuda.cache_allocated(device=DEVICE)/1e9))
+                   torch.cuda.memory_cached(device=DEVICE)/1e9))
 
         return torch.sigmoid(prod).view(n)
 
@@ -263,13 +263,13 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         y = torch.tensor(y, device=DEVICE)
         logging.info("X, y | allocated mem:{}GB | cached mem:{}GB".\
             format(torch.cuda.memory_allocated(device=DEVICE)/1e9,
-                   torch.cuda.cache_allocated(device=DEVICE)/1e9))
+                   torch.cuda.memory_cached(device=DEVICE)/1e9))
 
         # Train a new model
         self.model_ = self.returnModel()
         logging.info("Model init | allocated mem:{}GB | cached mem:{}GB".\
             format(torch.cuda.memory_allocated(device=DEVICE)/1e9,
-                   torch.cuda.cache_allocated(device=DEVICE)/1e9))
+                   torch.cuda.memory_cached(device=DEVICE)/1e9))
 
         # Initialize the SGD optimizer
         optimizer = torch.optim.SGD(self.model_.parameters(), 
@@ -312,18 +312,18 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
 
         logging.info("Pre empty| allocated mem:{}GB | cached mem:{}GB".\
             format(torch.cuda.memory_allocated(device=DEVICE)/1e9,
-                   torch.cuda.cache_allocated(device=DEVICE)/1e9))
+                   torch.cuda.memory_cached(device=DEVICE)/1e9))
         # Free memory of cached gpu stuff now that training is done
         torch.cuda.empty_cache()
         logging.info("Post empty | allocated mem:{}GB | cached mem:{}GB".\
             format(torch.cuda.memory_allocated(device=DEVICE)/1e9,
-                   torch.cuda.cache_allocated(device=DEVICE)/1e9))
+                   torch.cuda.memory_cached(device=DEVICE)/1e9))
         del X
         del y
         gc.collect()
         logging.info("Post del | allocated mem:{}GB | cached mem:{}GB".\
             format(torch.cuda.memory_allocated(device=DEVICE)/1e9,
-                   torch.cuda.cache_allocated(device=DEVICE)/1e9))
+                   torch.cuda.memory_cached(device=DEVICE)/1e9))
 
         return self
 
@@ -333,7 +333,7 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         """
         logging.info("Pre Predict | allocated mem:{}GB | cached mem:{}GB".\
             format(torch.cuda.memory_allocated(device=DEVICE)/1e9,
-                   torch.cuda.cache_allocated(device=DEVICE)/1e9))
+                   torch.cuda.memory_cached(device=DEVICE)/1e9))
         y_pred = np.empty(0)
         for i in itertools.count(0, self.pred_batch_size):
             if i >= X.shape[0]:
