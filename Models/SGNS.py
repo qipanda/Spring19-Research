@@ -183,16 +183,10 @@ class SourceReceiverModel(torch.nn.Module):
         
         X is assumned n x 3 where x is the batch size, 1st col is s, 2nd is r, 3rd is w
         """
-        logging.info("pre-forward | allocated mem:{}GB | cached mem:{}GB".\
-            format(torch.cuda.memory_allocated(device=DEVICE)/1e9,
-                   torch.cuda.memory_cached(device=DEVICE)/1e9))
         n = X.size()[0]
         prod = torch.bmm(
             (self.s_embeds(X[:, 0]) + self.r_embeds(X[:, 1])).view(n, 1, -1),
             (self.w_embeds(X[:, 2])).view(n, -1, 1))
-        logging.info("post-forward | allocated mem:{}GB | cached mem:{}GB".\
-            format(torch.cuda.memory_allocated(device=DEVICE)/1e9,
-                   torch.cuda.memory_cached(device=DEVICE)/1e9))
 
         return torch.sigmoid(prod).view(n)
 
@@ -256,20 +250,15 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         # Setup logging to file if available
         if self.log_fpath:
             logging.basicConfig(filename=self.log_fpath, level=logging.INFO)
-        logging.info("USING CUDA: {}".format(USE_CUDA))
+        logging.info("K={d}|lr={:.2E}|wd={:.2E}|CUDA:{}".format(
+            self.K, self.lr, self.weight_decay, USE_CUDA))
 
         # Convert X and y to tensors
         X = torch.tensor(X, device=DEVICE)
         y = torch.tensor(y, device=DEVICE)
-        logging.info("X, y | allocated mem:{}GB | cached mem:{}GB".\
-            format(torch.cuda.memory_allocated(device=DEVICE)/1e9,
-                   torch.cuda.memory_cached(device=DEVICE)/1e9))
 
         # Train a new model
         self.model_ = self.returnModel()
-        logging.info("Model init | allocated mem:{}GB | cached mem:{}GB".\
-            format(torch.cuda.memory_allocated(device=DEVICE)/1e9,
-                   torch.cuda.memory_cached(device=DEVICE)/1e9))
 
         # Initialize the SGD optimizer
         optimizer = torch.optim.SGD(self.model_.parameters(), 
@@ -280,6 +269,7 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         idxs = torch.arange(y.size()[0])
 
         for epoch in range(self.train_epocs):
+            logging.info("\tepoch:{d}".format(epoch))
             # Shuffle idxs inplace if chosen to do so
             if self.shuffle:
                 idxs = idxs[torch.randperm(y.size()[0])]
@@ -306,24 +296,14 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
                 optimizer.step()
 
                 # Log stuff
-                # logging.info("K:{} | lr:{:.2f} | wd:{}".format(self.K, self.lr, self.weight_decay)\
-                #     + " | Epoch:{} | Batch:{}".format(epoch, i/self.batch_size) \
-                #     + " | Train-log-loss:{:.4f}".format(loss.item()))
+                logging.info("\t\tBatch={d}|Train-log-loss:{:.4f}".format(
+                    int(i/self.batch_size), loss.item()))
 
-        logging.info("Pre empty| allocated mem:{}GB | cached mem:{}GB".\
-            format(torch.cuda.memory_allocated(device=DEVICE)/1e9,
-                   torch.cuda.memory_cached(device=DEVICE)/1e9))
-        # Free memory of cached gpu stuff now that training is done
-        torch.cuda.empty_cache()
-        logging.info("Post empty | allocated mem:{}GB | cached mem:{}GB".\
-            format(torch.cuda.memory_allocated(device=DEVICE)/1e9,
-                   torch.cuda.memory_cached(device=DEVICE)/1e9))
+        # Free memory of train data and unused cached gpu stuff now that training is done
         del X
         del y
         gc.collect()
-        logging.info("Post del | allocated mem:{}GB | cached mem:{}GB".\
-            format(torch.cuda.memory_allocated(device=DEVICE)/1e9,
-                   torch.cuda.memory_cached(device=DEVICE)/1e9))
+        torch.cuda.empty_cache()
 
         return self
 
@@ -331,9 +311,6 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         """
         Return list of predictions based on [self.pred_thresh]
         """
-        logging.info("Pre Predict | allocated mem:{}GB | cached mem:{}GB".\
-            format(torch.cuda.memory_allocated(device=DEVICE)/1e9,
-                   torch.cuda.memory_cached(device=DEVICE)/1e9))
         y_pred = np.empty(0)
         for i in itertools.count(0, self.pred_batch_size):
             if i >= X.shape[0]:
