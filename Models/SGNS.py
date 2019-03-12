@@ -161,9 +161,10 @@ class SGNSClassifier(BaseEstimator, ClassifierMixin):
         return np.mean(y_pred == y)
 
 class SourceReceiverModel(torch.nn.Module):
-    def __init__(self, s_cnt: int, r_cnt: int, w_cnt: int, K: int, s_mean: float,
-                 s_std: float, r_mean: float, r_std: float, w_mean: float, 
-                 w_std: float) -> None:
+    def __init__(self, s_cnt: int, r_cnt: int, w_cnt: int, K: int, 
+                 s_mean: float=0.0, s_std: float=1.0, 
+                 r_mean: float=0.0, r_std: float=1.0,
+                 w_mean: float=0.0, w_std: float=1.0) -> None:
         """
         s, r, w are source, receiver, and word respectivly, cnts are unique vocab
         length of each and K is their embedding dimension
