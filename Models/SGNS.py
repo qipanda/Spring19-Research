@@ -302,7 +302,7 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
                 optimizer.step()
 
                 # Log stuff
-                batch = epoch*batches_per_epoch + i/self.batch_size
+                batch = int(epoch*batches_per_epoch + i/self.batch_size)
                 losses[batch] = loss.item()
                 logging.info("\t\tBatch={} of {}|Cum-mean-train-log-loss:{:.4f}".format(
                     int(i/self.batch_size), int(batches_per_epoch), losses.sum()/batch))
