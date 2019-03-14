@@ -36,14 +36,14 @@ y = np.concatenate((y, y_neg), axis=0)
 sr_class = SourceReceiverClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     r_cnt=len(fcp.df["RECEIVER"].unique()),
                                     w_cnt=len(fcp.df["WORD"].unique()),
-                                    w_std=0.1,
+                                    w_std=0.01,
                                     K=50,
                                     lr=5e-1,
                                     weight_decay=1e-6,
                                     batch_size = 32,
                                     train_epocs = 1,
-                                    log_fpath = "./logs/sr-train.log")
+                                    log_fpath = "./logs/sr-train-20neg-wstd0.01.log")
 sr_class.fit(X, y)
 
 # Save best estimator
-torch.save(sr_class.model_.state_dict(), "sr-best-20neg.pt")
+torch.save(sr_class.model_.state_dict(), "sr-best-20neg-wstd0.01.pt")
