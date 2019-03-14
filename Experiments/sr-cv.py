@@ -11,6 +11,7 @@ from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.metrics import make_scorer, log_loss, f1_score, precision_score, recall_score, accuracy_score
 import torch
 import numpy as np
+import pandas as pd
 
 fcp = FullContextProcessor("../Data/OConnor2013/ocon-verb-noun-extracted.txt", "\t")
 
@@ -58,10 +59,12 @@ _, _, train_idxs, test_idxs = train_test_split(X,
 sr_class = SourceReceiverClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     r_cnt=len(fcp.df["RECEIVER"].unique()),
                                     w_cnt=len(fcp.df["WORD"].unique()),
-                                    w_std=0.1,
+                                    K=50,
+                                    lr=5e-1,
+                                    weight_decay=1e-6,
                                     batch_size = 32,
                                     train_epocs = 1,
-                                    log_fpath = "./logs/sr-cv-wd-low_w_std.log")
+                                    log_fpath = "./logs/sr-cv-std.log")
 
 scoring = {
     "Log-Loss": make_scorer(log_loss, greater_is_better=False),
@@ -71,9 +74,9 @@ scoring = {
     "F1": make_scorer(f1_score),
 }
 param_grid = {
-    "K":[50],
-    "lr":[5e-1],
-    "weight_decay":[1e-2, 1e-3, 1e-4, 1e-5, 1e-6],
+    "w_std":[1e-1, 1e-2, 1e-3, 1e-4, 1e-5],
+    "s_std":[1e-1, 1e-2, 1e-3, 1e-4, 1e-5],
+    "r_std":[1e-1, 1e-2, 1e-3, 1e-4, 1e-5],
 }
 
 gs = GridSearchCV(estimator=sr_class,
@@ -82,10 +85,11 @@ gs = GridSearchCV(estimator=sr_class,
                   n_jobs=1,
                   cv=[(train_idxs, test_idxs)],
                   refit="Log-Loss",
-                  verbose=30)
+                  verbose=30,
+                  return_train_score=True,)
 gs.fit(X, y)
 
-# # Best model is automatically retrained, now get test performance
+# Best model is automatically retrained, now get test performance
 y_pred = gs.predict(X_test)
 print("test logloss: {} | Acc: {} | Prec: {} | Rec: {} | test F1: {}".\
     format(log_loss(y_test, y_pred), 
@@ -94,10 +98,7 @@ print("test logloss: {} | Acc: {} | Prec: {} | Rec: {} | test F1: {}".\
            recall_score(y_test, y_pred),
            f1_score(y_test, y_pred)),)
 
-# # Save best estimator
-# best_model = gs.best_estimator_
-# torch.save(best_model.model_.state_dict(), "sr-best-20neg.pt")
 
-# # load code
-# test = SGNSModel(best_model.embedding_dim, best_model.c_vocab_len, best_model.w_vocab_len)
-# test.load_state_dict(torch.load("sgns-best-model.pt"))
+# Save cv results
+pd.DataFrame(gs.cv_results_).to_csv(path_or_buf="sr-cv-std-results.txt", sep="\t")
+

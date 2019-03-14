@@ -252,8 +252,9 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         # Setup logging to file if available
         if self.log_fpath:
             logging.basicConfig(filename=self.log_fpath, level=logging.INFO)
-        logging.info("K={}|lr={:.2E}|wd={:.2E}|CUDA:{}".format(
-            self.K, self.lr, self.weight_decay, USE_CUDA))
+        logging.info("K={}|lr={:.2E}|wd={:.2E}|s_std={:.2E}|r_std={:.2E}|w_std={:.2E}|CUDA:{}".\
+            format(self.K, self.lr, self.weight_decay, self.s_std, self.r_std, 
+                   self.w_std, USE_CUDA))
 
         # Setup storage for losses
         batches_per_epoch = math.ceil(y.shape[0]/self.batch_size)
@@ -302,10 +303,10 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
                 optimizer.step()
 
                 # Log stuff
-                batch = int(epoch*batches_per_epoch + i/self.batch_size + 1)
-                losses[batch] = loss.item()
+                cum_batch = int(epoch*batches_per_epoch + i/self.batch_size)
+                losses[cum_batch] = loss.item()
                 logging.info("\t\tBatch={} of {}|Cum-mean-train-log-loss:{:.4f}".format(
-                    int(i/self.batch_size), int(batches_per_epoch), losses.sum()/batch))
+                    int(i/self.batch_size + 1), int(batches_per_epoch), losses.sum()/(cum_batch+1)))
 
         # Free memory of train data and unused cached gpu stuff now that training is done
         del X
