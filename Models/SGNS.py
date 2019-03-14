@@ -1,6 +1,7 @@
 import gc
 import itertools
 import logging
+import math
 import pandas as pd
 import numpy as np
 import torch
@@ -254,6 +255,10 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
         logging.info("K={}|lr={:.2E}|wd={:.2E}|CUDA:{}".format(
             self.K, self.lr, self.weight_decay, USE_CUDA))
 
+        # Setup storage for losses
+        batches_per_epoch = math.ceil(self.y.shape[0]/self.batch_size)
+        losses = np.zeros(self.train_epocs*batches_per_epoch)
+
         # Convert X and y to tensors
         X = torch.tensor(X, device=DEVICE)
         y = torch.tensor(y, device=DEVICE)
@@ -297,8 +302,10 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
                 optimizer.step()
 
                 # Log stuff
-                logging.info("\t\tBatch={}|Train-log-loss:{:.4f}".format(
-                    int(i/self.batch_size), loss.item()))
+                batch = epoch*batches_per_epoch + i/self.batch_size
+                losses[batch] = loss.item()
+                logging.info("\t\tBatch={} of {}|Cum-mean-train-log-loss:{:.4f}".format(
+                    int(i/self.batch_size), int(batches_per_epoch), losses.sum()/batch))
 
         # Free memory of train data and unused cached gpu stuff now that training is done
         del X
