@@ -256,7 +256,7 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
             self.K, self.lr, self.weight_decay, USE_CUDA))
 
         # Setup storage for losses
-        batches_per_epoch = math.ceil(self.y.shape[0]/self.batch_size)
+        batches_per_epoch = math.ceil(y.shape[0]/self.batch_size)
         losses = np.zeros(self.train_epocs*batches_per_epoch)
 
         # Convert X and y to tensors
