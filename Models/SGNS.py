@@ -355,7 +355,7 @@ class SourceReceiverClassifier(BaseEstimator, ClassifierMixin):
 
 class SourceReceiverConcatModel(torch.nn.Module):
     def __init__(self, s_cnt: int, r_cnt: int, w_cnt: int, 
-                 K_s: int, K_r: int, K_w: int,
+                 K_s: int, K_r: int, K_w: int, xavier: bool=False,
                  s_mean: float=0.0, s_std: float=1.0, 
                  r_mean: float=0.0, r_std: float=1.0,
                  w_mean: float=0.0, w_std: float=1.0) -> None:
@@ -365,12 +365,20 @@ class SourceReceiverConcatModel(torch.nn.Module):
         and Receiver hidden dims should add to the word hidden dim.
         """
         super().__init__()
-        self.s_embeds = torch.nn.Embedding.from_pretrained(
-            torch.nn.init.normal_(torch.empty(s_cnt, K_s, device=DEVICE), s_mean, s_std), freeze=False)
-        self.r_embeds = torch.nn.Embedding.from_pretrained(
-            torch.nn.init.normal_(torch.empty(r_cnt, K_r, device=DEVICE), r_mean, r_std), freeze=False)
-        self.w_embeds = torch.nn.Embedding.from_pretrained(
-            torch.nn.init.normal_(torch.empty(w_cnt, K_w, device=DEVICE), w_mean, w_std), freeze=False)
+        if xavier:
+            self.s_embeds = torch.nn.Embedding.from_pretrained(
+                torch.nn.init.xavier_uniform_(torch.empty(s_cnt, K_s, device=DEVICE)), freeze=False) 
+            self.r_embeds = torch.nn.Embedding.from_pretrained(
+                torch.nn.init.xavier_uniform_(torch.empty(r_cnt, K_r, device=DEVICE)), freeze=False) 
+            self.w_embeds = torch.nn.Embedding.from_pretrained(
+                torch.nn.init.xavier_uniform_(torch.empty(w_cnt, K_w, device=DEVICE)), freeze=False) 
+        else:
+            self.s_embeds = torch.nn.Embedding.from_pretrained(
+                torch.nn.init.normal_(torch.empty(s_cnt, K_s, device=DEVICE), s_mean, s_std), freeze=False)
+            self.r_embeds = torch.nn.Embedding.from_pretrained(
+                torch.nn.init.normal_(torch.empty(r_cnt, K_r, device=DEVICE), r_mean, r_std), freeze=False)
+            self.w_embeds = torch.nn.Embedding.from_pretrained(
+                torch.nn.init.normal_(torch.empty(w_cnt, K_w, device=DEVICE), w_mean, w_std), freeze=False)
 
     def forward(self, X: torch.tensor) -> torch.tensor:
         """
@@ -388,7 +396,7 @@ class SourceReceiverConcatModel(torch.nn.Module):
 
 class SourceReceiverConcatClassifier(SourceReceiverClassifier):
     def __init__(self, s_cnt: int=10, r_cnt: int=10, w_cnt: int=100, 
-                 K_s: int=25, K_r: int=25, K_w: int=50,
+                 K: int=None, K_s: int=25, K_r: int=25, K_w: int=50, xavier: bool=False,
                  s_mean: float=0.0, s_std: float=1.0, r_mean: float=0.0, r_std: float=1.0,
                  w_mean: float=0.0, w_std: float=1.0, lr: float=1e-1, momentum: float=0.0, 
                  weight_decay: float=0.0, dampening: float=0.0, nesterov: bool=False,
@@ -402,15 +410,21 @@ class SourceReceiverConcatClassifier(SourceReceiverClassifier):
         self.s_cnt = s_cnt
         self.r_cnt = r_cnt
         self.w_cnt = w_cnt
-        self.K_s = K_s
-        self.K_r = K_r
-        self.K_w = K_w
+        if K is not None:
+            self.K_s = K//2
+            self.K_r = K//2
+            self.K_w = K
+        else:
+            self.K_s = K_s
+            self.K_r = K_r
+            self.K_w = K_w
         self.s_mean = s_mean
         self.s_std = s_std
         self.r_mean = r_mean
         self.r_std = r_std
         self.w_mean = w_mean
         self.w_std = w_std
+        self.xavier = xavier
 
         # SGD optimization parameters
         self.lr = lr
@@ -439,7 +453,7 @@ class SourceReceiverConcatClassifier(SourceReceiverClassifier):
         Return a blank SR model for this classifier
         """
         return SourceReceiverConcatModel(self.s_cnt, self.r_cnt, self.w_cnt, self.K_s, self.K_r, 
-            self.K_w, self.s_mean, self.s_std, self.r_mean, self.r_std, self.w_mean, self.w_std)
+            self.K_w, self.xavier, self.s_mean, self.s_std, self.r_mean, self.r_std, self.w_mean, self.w_std)
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         """
