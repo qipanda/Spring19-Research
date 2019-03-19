@@ -13,7 +13,7 @@ import torch
 import numpy as np
 import pandas as pd
 
-fcp = FullContextProcessor("../Data/OConnor2013/ocon-verb-noun-extracted.txt", "\t")
+fcp = FullContextProcessor("../Data/OConnor2013/ocon-nicepaths-extracted.txt", "\t")
 
 fcp.createTwoWayMap("SOURCE")
 fcp.createTwoWayMap("RECEIVER")
@@ -60,7 +60,7 @@ src_class = SourceReceiverConcatClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     r_cnt=len(fcp.df["RECEIVER"].unique()),
                                     w_cnt=len(fcp.df["WORD"].unique()),
                                     train_epocs = 1,
-                                    log_fpath = "./logs/src-cv.log")
+                                    log_fpath = "./logs/src-nicepaths-cv.log")
 
 scoring = {
     "Log-Loss": make_scorer(log_loss, greater_is_better=False),
@@ -97,5 +97,5 @@ print("test logloss: {} | Acc: {} | Prec: {} | Rec: {} | test F1: {}".\
 
 
 # Save cv results
-pd.DataFrame(gs.cv_results_).to_csv(path_or_buf="src-cv-results.txt", sep="\t")
+pd.DataFrame(gs.cv_results_).to_csv(path_or_buf="src-nicepaths-cv-results.txt", sep="\t")
 

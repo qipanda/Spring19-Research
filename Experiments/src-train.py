@@ -9,7 +9,8 @@ from Preprocessing.FullContextProcessor import FullContextProcessor
 import torch
 import numpy as np
 
-fcp = FullContextProcessor("../Data/OConnor2013/ocon-verb-noun-extracted.txt", "\t")
+# fcp = FullContextProcessor("../Data/OConnor2013/ocon-verb-noun-extracted.txt", "\t")
+fcp = FullContextProcessor("../Data/OConnor2013/ocon-nicepaths-extracted.txt", "\t")
 
 fcp.createTwoWayMap("SOURCE")
 fcp.createTwoWayMap("RECEIVER")
@@ -41,18 +42,16 @@ y = np.concatenate((y, y_neg), axis=0)
 src_class = SourceReceiverConcatClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     r_cnt=len(fcp.df["RECEIVER"].unique()),
                                     w_cnt=len(fcp.df["WORD"].unique()),
-                                    s_std=1e-3,
-                                    r_std=1e-3,
-                                    w_std=1e-3,
-                                    K_s=25,
-                                    K_r=25,
-                                    K_w=50,
+                                    xavier=True,
+                                    K_s=100,
+                                    K_r=100,
+                                    K_w=200,
                                     lr=5e-1,
-                                    weight_decay=1e-6,
+                                    # weight_decay=1e-6,
                                     batch_size = 32,
                                     train_epocs = 1,
-                                    log_fpath = "./logs/src-train-srstd0.001-wstd0.001.log")
+                                    log_fpath = "./logs/src-train-xavier.log")
 src_class.fit(X, y)
 
 # Save best estimator
-torch.save(src_class.model_.state_dict(), "src-srstd0.001-wstd0.001.pt")
+torch.save(src_class.model_.state_dict(), "src-xavier.pt")
