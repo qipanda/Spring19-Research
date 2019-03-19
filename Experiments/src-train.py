@@ -41,8 +41,8 @@ y = np.concatenate((y, y_neg), axis=0)
 src_class = SourceReceiverConcatClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     r_cnt=len(fcp.df["RECEIVER"].unique()),
                                     w_cnt=len(fcp.df["WORD"].unique()),
-                                    s_std=1e-1,
-                                    r_std=1e-1,
+                                    s_std=1e-3,
+                                    r_std=1e-3,
                                     w_std=1e-3,
                                     K_s=25,
                                     K_r=25,
@@ -51,8 +51,8 @@ src_class = SourceReceiverConcatClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     weight_decay=1e-6,
                                     batch_size = 32,
                                     train_epocs = 1,
-                                    log_fpath = "./logs/src-train-srstd0.1-wstd0.001.log")
+                                    log_fpath = "./logs/src-train-srstd0.001-wstd0.001.log")
 src_class.fit(X, y)
 
 # Save best estimator
-torch.save(src_class.model_.state_dict(), "src-srstd0.1-wstd0.001.pt")
+torch.save(src_class.model_.state_dict(), "src-srstd0.001-wstd0.001.pt")
