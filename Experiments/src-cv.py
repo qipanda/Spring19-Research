@@ -73,7 +73,7 @@ param_grid = {
     "K":[100, 200],
     "lr":[1e0, 5e-1, 1e-1],
     "weight_decay":[0.0, 1e-3, 1e-6],
-    "batch_size":[1, 16, 32],
+    "batch_size":[16, 32],
 }
 
 gs = GridSearchCV(estimator=src_class,
