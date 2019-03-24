@@ -1,0 +1,19 @@
+# Paper info
+2015 - Mo Yu, Matthew R. Gormley, Mark Dredze
+Combining Word Embeddings and Feature Embeddings for Fine-grained Relation Extraction
+To find good ways of combining source-receiver embeddings
+
+# Summary
+
+# Misc. keywords
+- FCM - Factor-based Compositional Embedding Models (cross-product of features 
+    with embedding values to get total feature set)
+
+# Skim notes
+- Hand crafted features and word embeddings should be combined for NLP tasks, 
+    one reason might be that things like long term dependencies can easily be
+    captured by hand-crafted features but not so much with embeddings
+- Previous attempts to combine such features resulted in an exponential increase
+    in the count of features
+- Their method builds off of Yu et al (2014)'s Factor-based Compositional
+    Embedding Models (FCM) and 

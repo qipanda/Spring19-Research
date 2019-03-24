@@ -2,7 +2,7 @@
 Children are papers that reference their parent, first level are all roots\
 Format: [Year][First Author],[Short Description of Paper]
 
-# Tree
+# Initial Tree
 - *2013 O'Connor*, Unsupervised extraction of political relations between countries
     based on predicate pathes
     - *2015 Chambers*, Ways to gather public sentiment on countries based on tweets
@@ -19,3 +19,11 @@ Format: [Year][First Author],[Short Description of Paper]
     countries using things like GDP and cooperation in conflict
 - *1981 RHT O'Kane* Simple linear model with GDP predicting if a coup will occur in a country for
 a set timeframe
+
+# Combining word embeddings
+- *2015 Yu, Gormley, Dredze,* Combining Word Embeddings and Feature Embeddings for
+    Fine-grained Relation Extraction
+
+# Word embeddings over time
+- *2016 Hamilton, Leskovec,* Jurafsky, How word embedding semantics change over
+  time
