@@ -2,7 +2,7 @@ import json, sys
 import util
 
 with open("../../Data/OConnor2013/v7.pathfil.dthresh=500.pthresh=10.txt", "r") as fr,\
-     open("../../Data/OConnor2013/v7.pathfil.dthresh=500.pthresh=10.nicepaths.txt", "w") as fw:
+     open("../../Data/OConnor2013/ocon-nicepaths-extracted.txt", "w") as fw:
     lines = fr.readlines()
     fw.write(lines[0] + "\n")
     for line in lines[1:]:
