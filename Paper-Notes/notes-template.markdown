@@ -3,8 +3,6 @@
 [Title]
 [Access reason]
 
-# Summary
-
 # Misc. keywords
 
 # Skim notes

@@ -15,6 +15,8 @@ Format: [Year][First Author],[Short Description of Paper]
     - *2017 Potnoff*, Developed tools for getting high level snapshots of underground
         forums based on the text of forum posts
     - *2015 Minhas*, SVM to predicate country political regime types
+
+# Modelling interactions between countries with non-textual data
 - *2011 Westveld*, Used linear models to model dyadic trade/conflict levels between 
     countries using things like GDP and cooperation in conflict
 - *1981 RHT O'Kane* Simple linear model with GDP predicting if a coup will occur in a country for
@@ -27,3 +29,5 @@ a set timeframe
 # Word embeddings over time
 - *2016 Hamilton, Leskovec,* Jurafsky, How word embedding semantics change over
   time
+- 2017 Bamler, Mandt, Dynamic Word Embeddings, a joint probability extension to 
+    the SGNS model allowing for joint-optimization across time 
