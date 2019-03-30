@@ -27,7 +27,7 @@ a set timeframe
     Fine-grained Relation Extraction
 
 # Word embeddings over time
-- *2016 Hamilton, Leskovec,* Jurafsky, How word embedding semantics change over
-  time
-- 2017 Bamler, Mandt, Dynamic Word Embeddings, a joint probability extension to 
+- *2017 Bamler, Mandt,* Dynamic Word Embeddings, a joint probability extension to 
     the SGNS model allowing for joint-optimization across time 
+    - *2016 Hamilton, Leskovec,* Jurafsky, How word embedding semantics change over
+      time

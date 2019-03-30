@@ -43,15 +43,13 @@ src_class = SourceReceiverConcatClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     r_cnt=len(fcp.df["RECEIVER"].unique()),
                                     w_cnt=len(fcp.df["WORD"].unique()),
                                     xavier=True,
-                                    K_s=100,
-                                    K_r=100,
-                                    K_w=200,
-                                    lr=5e-1,
-                                    # weight_decay=1e-6,
+                                    K=200,
+                                    lr=1.0,
+                                    weight_decay=1e-6,
                                     batch_size = 32,
                                     train_epocs = 1,
                                     log_fpath = "./logs/src-train-xavier.log")
 src_class.fit(X, y)
 
 # Save best estimator
-torch.save(src_class.model_.state_dict(), "src-xavier.pt")
+torch.save(src_class.model_.state_dict(), "src-K200-lr1-wd1e-6-bs32.pt")

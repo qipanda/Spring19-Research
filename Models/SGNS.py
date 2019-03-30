@@ -525,3 +525,179 @@ class SourceReceiverConcatClassifier(SourceReceiverClassifier):
         torch.cuda.empty_cache()
 
         return self
+
+class SRCTModel(torch.nn.Module):
+    def __init__(self, s_cnt: int, r_cnt: int, p_cnt: int, K_s: int, K_r: int, K_p: int,
+                 T: int) -> None:
+        """
+        Source-Receiver model letting the s/r embedding be concatenated and have
+        a timesteps. Each source, receiver, and predicate embedding consequently 
+        has their own K. Source and Receiver hidden dims should add to the word 
+        hidden dim.
+        """
+        super().__init__()
+        self.s_cnt = s_cnt
+        self.r_cnt = r_cnt
+        self.p_cnt = p_cnt
+        self.T = T
+
+        self.s_embeds = torch.nn.Embedding.from_pretrained(
+            torch.nn.init.xavier_uniform_(torch.empty(T*s_cnt, K_s, device=DEVICE)), freeze=False) 
+        self.r_embeds = torch.nn.Embedding.from_pretrained(
+            torch.nn.init.xavier_uniform_(torch.empty(T*r_cnt, K_r, device=DEVICE)), freeze=False) 
+        self.p_embeds = torch.nn.Embedding.from_pretrained(
+            torch.nn.init.xavier_uniform_(torch.empty(p_cnt, K_p, device=DEVICE)), freeze=False) 
+
+    def forward(self, X: torch.tensor) -> torch.tensor:
+        """
+        Forward pass through SRCT model, concats together s and r tensors from 
+        give t and then applies dot product of that concatenation with the p tensor
+
+        X is assumed n x 4 where x is the batch size, 1st col is s, 2nd is r, 3rd is p, 4th is t
+        """
+        n = X.size()[0]
+        s, r, p, t = X[:, 0], X[:, 1], X[:, 2], X[:, 3]
+        st, rt = s + t*self.s_cnt, r + t*self.r_cnt
+
+        prod = torch.bmm(
+            torch.cat((self.s_embeds(st), self.r_embeds(rt)), dim=1).view(n, 1, -1),
+            (self.p_embeds(p)).view(n, -1, 1))
+
+        return torch.sigmoid(prod).view(n)
+
+    def returnRegTerm(self, alpha: float, lam: float):
+        """
+        Return the L2 loss of all model parameters(embeddings) along with the temporal
+        L2 loss between source and receiver embeddings one time step away
+        """
+        L2_params = torch.norm(self.s_embeds.weight, 2)**2.0 + \
+            torch.norm(self.r_embeds.weight, 2)**2.0 + \
+            torch.norm(self.p_embeds.weight, 2)**2.0
+
+        L2_time = \
+            torch.norm(self.s_embeds.weight[:self.s_cnt*(self.T-1), :] - 
+                self.s_embeds.weight[self.s_cnt:, :], 2)**2.0 + \
+            torch.norm(self.r_embeds.weight[:self.r_cnt*(self.T-1), :] -
+                self.r_embeds.weight[self.r_cnt:, :], 2)**2.0
+
+        return lam*L2_params + alpha*lam*L2_time
+
+class SRCTClassifier(BaseEstimator, ClassifierMixin):
+    def __init__(self, s_cnt: int=10, r_cnt: int=10, p_cnt: int=100, T: int=1,
+                 K: int=None, K_s: int=25, K_r: int=25, K_p: int=50,
+                 lr: float=1e-1, alpha: float=0.5, lam: float=0.0,
+                 batch_size: int=32, pred_batch_size: int=100000, train_epocs: int=1, 
+                 shuffle: bool=True, torch_threads: int=12, BCE_reduction: str="mean",
+                 pred_thresh: float=0.5, log_fpath: str=None) -> None:
+        """
+        SourceReceiver Classifier wrapper for piping with sklearn.
+        """
+        # Model parameters
+        self.s_cnt = s_cnt
+        self.r_cnt = r_cnt
+        self.p_cnt = p_cnt
+        self.T = T
+        if K is not None:
+            self.K_s = K//2
+            self.K_r = K//2
+            self.K_p = K
+        else:
+            self.K_s = K_s
+            self.K_r = K_r
+            self.K_p = K_p
+
+        # SGD optimization parameters
+        self.lr = lr
+        self.alpha = alpha
+        self.lam = lam
+
+        # Other training parameters
+        self.batch_size = batch_size
+        self.pred_batch_size = pred_batch_size
+        self.train_epocs = train_epocs
+        self.shuffle = shuffle
+        self.torch_threads = torch_threads
+        self.BCE_reduction = BCE_reduction
+        self.loss_fn = torch.nn.BCELoss(reduction=self.BCE_reduction)
+
+        # Prediction parameters
+        self.pred_thresh = pred_thresh
+
+        # Logging parameters
+        self.log_fpath = log_fpath
+
+    def returnModel(self):
+        """
+        Return a blank SRCT model for this classifier
+        """
+        return SRCTModel(self.s_cnt, self.r_cnt, self.p_cnt, self.K_s, self.K_r, self.K_p, self.T)
+
+    def fit(self, X: np.ndarray, y: np.ndarray) -> None:
+        """
+        Train a new SRCT classifer with data X (samples by features) and y (binary targets)
+        """
+        # Setup logging to file if available
+        if self.log_fpath:
+            logging.basicConfig(filename=self.log_fpath, level=logging.INFO)
+        logging.info("K_s={}|K_r={}|K_p={}|lr={:.2E}|alpha={:.2E}|lam={:.2E}|batch_size={}|CUDA:{}".\
+            format(self.K_s, self.K_r, self.K_p, self.lr, self.alpha, self.lam, self.batch_size, USE_CUDA))
+
+        # Setup storage for losses
+        batches_per_epoch = math.ceil(y.shape[0]/self.batch_size)
+        losses = np.zeros(self.train_epocs*batches_per_epoch)
+
+        # Convert X and y to tensors
+        X = torch.tensor(X, device=DEVICE)
+        y = torch.tensor(y, device=DEVICE)
+
+        # Train a new model
+        self.model_ = self.returnModel()
+
+        # Initialize the SGD optimizer
+        optimizer = torch.optim.SGD(self.model_.parameters(), lr=self.lr)
+
+        # set idxs to iterate over per epoch
+        idxs = torch.arange(y.size()[0])
+
+        for epoch in range(self.train_epocs):
+            logging.info("\tepoch:{}".format(epoch))
+            # Shuffle idxs inplace if chosen to do so
+            if self.shuffle:
+                idxs = idxs[torch.randperm(y.size()[0])]
+
+            for i in itertools.count(0, self.batch_size):
+                # Check if gone through whole dataset already
+                if i >= y.size()[0]:
+                    break
+
+                # Get batch for gradient update
+                x, y_target = X[idxs[i:i+self.batch_size], :], y[idxs[i:i+self.batch_size]]
+
+                # Before new batch, zero old gradient instance built up in model
+                self.model_.zero_grad()
+
+                # Forward pass to get prob of pos
+                pos_prob = self.model_(x)
+
+                # Compute loss function
+                NLL = self.loss_fn(pos_prob, y_target)
+                REG = self.model_.returnRegTerm(self.alpha, self.lam)
+                loss = NLL + REG
+
+                # Back pass then update based on gradient from back pass
+                loss.backward()
+                optimizer.step()
+
+                # Log stuff
+                cum_batch = int(epoch*batches_per_epoch + i/self.batch_size)
+                losses[cum_batch] = loss.item()
+                logging.info("\t\tBatch={} of {}|Cum-mean-train-log-loss:{:.4f}".format(
+                    int(i/self.batch_size + 1), int(batches_per_epoch), losses.sum()/(cum_batch+1)))
+
+        # # Free memory of train data and unused cached gpu stuff now that training is done
+        # del X
+        # del y
+        # gc.collect()
+        # torch.cuda.empty_cache()
+
+        return self

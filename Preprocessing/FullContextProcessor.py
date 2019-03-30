@@ -166,3 +166,11 @@ class FullContextProcessor:
                     "col_to_idx": self.twoway_maps[colname]["idx_to_col"],
                     "colname": colname}
             self.df.loc[:, colname] = self.df.apply(**kwds, axis=1)
+
+    def createMonthTimeIdx(self, colname: str, newcolname: str) -> None:
+        """
+        Given the date column name, convert it to datetime and then assigned 
+        0 -> [# months] integer indices as a column called "t"
+        """
+        t_series = pd.to_datetime(self.df[colname]).apply(lambda x: 100*x.year + x.month)
+        self.df.loc[:, newcolname] = t_series.rank(method="dense").astype(int) - 1

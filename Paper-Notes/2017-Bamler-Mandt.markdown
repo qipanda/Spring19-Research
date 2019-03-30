@@ -26,3 +26,6 @@ Accessed as a reference to 2016-Hamilton (Embeddings over time)
 	embeddings (Welch & Bishop, 1995)
     - Diffusion constant D details (Welch & Bishop, 1995)
     - Transitions are defined by Normal Distributions (what are eq 5,6)?
+    - Model shares information across time steps!
+- Inference:
+    - Filtering: 
