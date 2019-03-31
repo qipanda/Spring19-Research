@@ -47,11 +47,11 @@ srct_class = SRCTClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                             K=200,
                             lr=1.0,
                             alpha=1e2,
-                            lam=1e-6,
+                            lam=1e-7,
                             batch_size = 32,
                             train_epocs = 1,
                             log_fpath = "./logs/srct-train.log")
 srct_class.fit(X, y)
 
 # Save best estimator
-torch.save(srct_class.model_.state_dict(), "srct-K200-lr1-alpha1e2-lam1e-6.pt")
+torch.save(srct_class.model_.state_dict(), "srct-K200-lr1-alpha1e2-lam1e-7.pt")
