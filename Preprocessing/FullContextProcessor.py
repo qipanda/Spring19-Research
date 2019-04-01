@@ -174,3 +174,5 @@ class FullContextProcessor:
         """
         t_series = pd.to_datetime(self.df[colname]).apply(lambda x: 100*x.year + x.month)
         self.df.loc[:, newcolname] = t_series.rank(method="dense").astype(int) - 1
+        self.df.loc[:, "YEAR"] = pd.to_datetime(self.df[colname]).apply(lambda x: x.year)
+        self.df.loc[:, "MONTH"] = pd.to_datetime(self.df[colname]).apply(lambda x: x.month)
