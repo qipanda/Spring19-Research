@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import torch
 from sklearn.base import BaseEstimator, ClassifierMixin
+from tensorboardX import SummaryWriter
 
 # CUDA variable for GPU usage if it exists
 USE_CUDA = torch.cuda.is_available()
@@ -448,12 +449,13 @@ class SourceReceiverConcatClassifier(SourceReceiverClassifier):
         # Logging parameters
         self.log_fpath = log_fpath
 
-    def returnModel(self):
+    def initModel(self):
         """
-        Return a blank SR model for this classifier
+        Initialize a blank SR model for this classifier
         """
-        return SourceReceiverConcatModel(self.s_cnt, self.r_cnt, self.w_cnt, self.K_s, self.K_r, 
-            self.K_w, self.xavier, self.s_mean, self.s_std, self.r_mean, self.r_std, self.w_mean, self.w_std)
+        self.model_ = SourceReceiverConcatModel(self.s_cnt, self.r_cnt, self.w_cnt,
+            self.K_s, self.K_r, self.K_w, self.xavier, self.s_mean, self.s_std,
+            self.r_mean, self.r_std, self.w_mean, self.w_std)
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         """
@@ -475,7 +477,7 @@ class SourceReceiverConcatClassifier(SourceReceiverClassifier):
         y = torch.tensor(y, device=DEVICE)
 
         # Train a new model
-        self.model_ = self.returnModel()
+        self.initModel()
 
         # Initialize the SGD optimizer
         optimizer = torch.optim.SGD(self.model_.parameters(), 
@@ -580,13 +582,13 @@ class SRCTModel(torch.nn.Module):
             torch.norm(self.r_embeds.weight[:self.r_cnt*(self.T-1), :] -
                 self.r_embeds.weight[self.r_cnt:, :], 2)**2.0
 
-        return lam*L2_params + alpha*lam*L2_time
+        return lam*L2_params + alpha*L2_time
 
 class SRCTClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, s_cnt: int=10, r_cnt: int=10, p_cnt: int=100, T: int=1,
                  K: int=None, K_s: int=25, K_r: int=25, K_p: int=50,
                  lr: float=1e-1, alpha: float=0.5, lam: float=0.0,
-                 batch_size: int=32, pred_batch_size: int=100000, train_epocs: int=1, 
+                 batch_size: int=32, pred_batch_size: int=100000, train_epochs: int=1, 
                  shuffle: bool=True, torch_threads: int=12, BCE_reduction: str="mean",
                  pred_thresh: float=0.5, log_fpath: str=None) -> None:
         """
@@ -608,13 +610,13 @@ class SRCTClassifier(BaseEstimator, ClassifierMixin):
 
         # SGD optimization parameters
         self.lr = lr
-        self.alpha = alpha
         self.lam = lam
+        self.alpha = alpha
 
         # Other training parameters
         self.batch_size = batch_size
         self.pred_batch_size = pred_batch_size
-        self.train_epocs = train_epocs
+        self.train_epochs = train_epochs
         self.shuffle = shuffle
         self.torch_threads = torch_threads
         self.BCE_reduction = BCE_reduction
@@ -625,6 +627,9 @@ class SRCTClassifier(BaseEstimator, ClassifierMixin):
 
         # Logging parameters
         self.log_fpath = log_fpath
+        log_fpath_ext = "K{}_lr{:.2E}_lam{:.2E}_alpha{:.2E}_bs{}_epochs{}".format(
+            self.K_p, self.lr, self.lam, self.alpha, self.batch_size, self.train_epochs)
+        self.writer = SummaryWriter(log_dir=("runs/" + log_fpath_ext))
 
     def returnModel(self):
         """
@@ -644,7 +649,7 @@ class SRCTClassifier(BaseEstimator, ClassifierMixin):
 
         # Setup storage for losses
         batches_per_epoch = math.ceil(y.shape[0]/self.batch_size)
-        losses = np.zeros(self.train_epocs*batches_per_epoch)
+        losses = np.zeros(self.train_epochs*batches_per_epoch)
 
         # Convert X and y to tensors
         X = torch.tensor(X, device=DEVICE)
@@ -659,7 +664,7 @@ class SRCTClassifier(BaseEstimator, ClassifierMixin):
         # set idxs to iterate over per epoch
         idxs = torch.arange(y.size()[0])
 
-        for epoch in range(self.train_epocs):
+        for epoch in range(self.train_epochs):
             logging.info("\tepoch:{}".format(epoch))
             # Shuffle idxs inplace if chosen to do so
             if self.shuffle:
@@ -690,6 +695,7 @@ class SRCTClassifier(BaseEstimator, ClassifierMixin):
 
                 # Log stuff
                 cum_batch = int(epoch*batches_per_epoch + i/self.batch_size)
+                self.writer.add_scalar("train-loss", loss.item(), cum_batch)
                 losses[cum_batch] = loss.item()
                 logging.info("\t\tBatch={} of {}|Cum-mean-train-log-loss:{:.4f}".format(
                     int(i/self.batch_size + 1), int(batches_per_epoch), losses.sum()/(cum_batch+1)))
