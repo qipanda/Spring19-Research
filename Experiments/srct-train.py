@@ -46,7 +46,7 @@ srct_class = SRCTClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                             K=200,
                             lr=1.0,
                             alpha=1e-3,
-                            lam=1e-9,
+                            lam=0.0,
                             batch_size = 32,
                             train_epochs = 5,
                             log_fpath = "./runs")
