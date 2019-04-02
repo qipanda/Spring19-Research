@@ -44,11 +44,11 @@ srct_class = SRCTClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                             p_cnt=len(fcp.df["PRED"].unique()),
                             T=len(fcp.df["TIME"].unique()),
                             K=200,
-                            lr=0.75,
+                            lr=1.0,
                             alpha=1e-3,
-                            lam=0.0,
+                            lam=1e-9,
                             batch_size = 32,
-                            train_epochs = 3,
+                            train_epochs = 5,
                             log_fpath = "./runs")
 srct_class.fit(X, y)
 
