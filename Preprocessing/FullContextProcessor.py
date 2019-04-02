@@ -176,3 +176,11 @@ class FullContextProcessor:
         self.df.loc[:, newcolname] = t_series.rank(method="dense").astype(int) - 1
         self.df.loc[:, "YEAR"] = pd.to_datetime(self.df[colname]).apply(lambda x: x.year)
         self.df.loc[:, "MONTH"] = pd.to_datetime(self.df[colname]).apply(lambda x: x.month)
+
+    def createYearTimeIdx(self, colname: str, newcolname: str) -> None:
+        """
+        Given the date column name, convert it to datetime and then assigned 
+        0 -> [# years] integer indices as a column called "t"
+        """
+        self.df.loc[:, "YEAR"] = pd.to_datetime(self.df[colname]).apply(lambda x: x.year)
+        self.df.loc[:, newcolname] = self.df.loc[:, "YEAR"].rank(method="dense").astype(int) - 1

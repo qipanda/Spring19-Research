@@ -627,9 +627,9 @@ class SRCTClassifier(BaseEstimator, ClassifierMixin):
 
         # Logging parameters
         self.log_fpath = log_fpath
-        log_fpath_ext = "K{}_lr{:.2E}_lam{:.2E}_alpha{:.2E}_bs{}_epochs{}".format(
+        self.tensorboard_path = "K{}_lr{:.2E}_lam{:.2E}_alpha{:.2E}_bs{}_epochs{}".format(
             self.K_p, self.lr, self.lam, self.alpha, self.batch_size, self.train_epochs)
-        self.writer = SummaryWriter(log_dir=("runs/" + log_fpath_ext))
+        self.writer = SummaryWriter(log_dir=(self.log_fpath + self.tensorboard_path))
 
     def returnModel(self):
         """
@@ -641,15 +641,8 @@ class SRCTClassifier(BaseEstimator, ClassifierMixin):
         """
         Train a new SRCT classifer with data X (samples by features) and y (binary targets)
         """
-        # Setup logging to file if available
-        if self.log_fpath:
-            logging.basicConfig(filename=self.log_fpath, level=logging.INFO)
-        logging.info("K_s={}|K_r={}|K_p={}|lr={:.2E}|alpha={:.2E}|lam={:.2E}|batch_size={}|CUDA:{}".\
-            format(self.K_s, self.K_r, self.K_p, self.lr, self.alpha, self.lam, self.batch_size, USE_CUDA))
-
-        # Setup storage for losses
+        # For logging purposes
         batches_per_epoch = math.ceil(y.shape[0]/self.batch_size)
-        losses = np.zeros(self.train_epochs*batches_per_epoch)
 
         # Convert X and y to tensors
         X = torch.tensor(X, device=DEVICE)
@@ -665,7 +658,6 @@ class SRCTClassifier(BaseEstimator, ClassifierMixin):
         idxs = torch.arange(y.size()[0])
 
         for epoch in range(self.train_epochs):
-            logging.info("\tepoch:{}".format(epoch))
             # Shuffle idxs inplace if chosen to do so
             if self.shuffle:
                 idxs = idxs[torch.randperm(y.size()[0])]
@@ -693,12 +685,12 @@ class SRCTClassifier(BaseEstimator, ClassifierMixin):
                 loss.backward()
                 optimizer.step()
 
-                # Log stuff
-                cum_batch = int(epoch*batches_per_epoch + i/self.batch_size)
-                self.writer.add_scalar("train-loss", loss.item(), cum_batch)
-                losses[cum_batch] = loss.item()
-                logging.info("\t\tBatch={} of {}|Cum-mean-train-log-loss:{:.4f}".format(
-                    int(i/self.batch_size + 1), int(batches_per_epoch), losses.sum()/(cum_batch+1)))
+                # Tensoboard Log stuff
+                cum_batch_id = int(epoch*batches_per_epoch + i/self.batch_size)
+                self.writer.add_scalar("train-loss", NLL.item(), cum_batch_id)
+                self.writer.add_scalar("reg-loss", REG.item(), cum_batch_id)
+                self.writer.add_scalar("total-loss", loss.item(), cum_batch_id)
+                print("hi")
 
         # # Free memory of train data and unused cached gpu stuff now that training is done
         # del X
