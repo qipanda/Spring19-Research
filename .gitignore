@@ -1,0 +1,8 @@
+.vscode
+__pycache__
+.mypy_cache
+Data
+*.swp
+.ipynb_checkpoints
+ENV
+runs
