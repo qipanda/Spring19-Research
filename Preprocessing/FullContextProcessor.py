@@ -130,7 +130,7 @@ class FullContextProcessor:
         """
         self.df = self.df.loc[~self.df.loc[:, colname].apply(lambda x: x.isnumeric()), :]
 
-    def createTwoWayMap(self, colname: str) -> None:
+    def createTwoWayMap(self, colname: str, add_col: bool) -> None:
         """
         For a given column, assign each unique value an index number from 0 to
         len-1 and save both dict maps
@@ -142,6 +142,10 @@ class FullContextProcessor:
             idx_to_col[idx] = col_val
             
         self.twoway_maps[colname] = {"col_to_idx":col_to_idx, "idx_to_col":idx_to_col}
+
+        if add_col:
+            self.df.loc[:, "{}_IDX".format(colname)] = \
+                self.df[colname].apply(lambda x: self.twoway_maps[colname]["col_to_idx"][x])
 
     def convertColToIdx(self, colname: str) -> None:
         """
