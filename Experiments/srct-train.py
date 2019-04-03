@@ -63,4 +63,4 @@ srct_class = SRCTClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
 srct_class.fit(X, y)
 
 # Save best estimator
-torch.save(srct_class.model_.state_dict(), srct_class.tensorboard_path)
+torch.save(srct_class.model_.state_dict(), srct_class.tensorboard_path + ".pt")
