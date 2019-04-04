@@ -62,7 +62,7 @@ srct_class = SRCTClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                             lam=args.lam,
                             batch_size=args.batch_size,
                             train_epochs=args.train_epochs,
-                            log_fpath=args.log_fpath)
+                            log_fpath=args.log_fpath + "/" + args.gran)
 srct_class.fit(X, y)
 
 # Save best estimator
