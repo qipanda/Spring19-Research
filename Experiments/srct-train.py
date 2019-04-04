@@ -29,7 +29,7 @@ import torch
 import numpy as np
 
 # Load the data
-fcp = FullContextProcessor("../Data/OConnor2013/ocon-nicepaths-indexed.txt", "\t")
+fcp = FullContextProcessor("../Data/OConnor2013/ocon-nicepaths-month-indexed.txt", "\t")
 X = fcp.df.loc[:, ["SOURCE_IDX", "RECEIVER_IDX", "PRED_IDX", "TIME"]].values
 y = np.ones(X.shape[0])
 

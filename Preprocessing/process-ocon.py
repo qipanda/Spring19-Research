@@ -14,5 +14,6 @@ fcp = FullContextProcessor("../Data/OConnor2013/ocon-nicepaths-extracted.txt", "
 fcp.createTwoWayMap("SOURCE", True)
 fcp.createTwoWayMap("RECEIVER", True)
 fcp.createTwoWayMap("PRED", True)
-fcp.createYearTimeIdx("DATE", "TIME")
-fcp.writeDf("../Data/OConnor2013/ocon-nicepaths-indexed.txt", "\t")
+# fcp.createYearTimeIdx("DATE", "TIME")
+fcp.createMonthTimeIdx("DATE", "TIME")
+fcp.writeDf("../Data/OConnor2013/ocon-nicepaths-month-indexed.txt", "\t")
