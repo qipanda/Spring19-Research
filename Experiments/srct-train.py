@@ -2,6 +2,8 @@
 import sys, os, argparse
 sys.path.append(os.path.dirname(sys.path[0]))
 parser = argparse.ArgumentParser()
+parser.add_argument("-g", "--granularity", dest="gran", type=str,
+                    help="the granularity of time step {year, month}")
 parser.add_argument("-ns", "--negsamples", dest="negsamples", type=int,
                     help="number of neg samples per training sample")
 parser.add_argument("-K", "--hiddendim", dest="K", type=int,
@@ -29,7 +31,8 @@ import torch
 import numpy as np
 
 # Load the data
-fcp = FullContextProcessor("../Data/OConnor2013/ocon-nicepaths-month-indexed.txt", "\t")
+fcp = FullContextProcessor(
+    "../Data/OConnor2013/ocon-nicepaths-{}-indexed.txt".format(args.gran), "\t")
 X = fcp.df.loc[:, ["SOURCE_IDX", "RECEIVER_IDX", "PRED_IDX", "TIME"]].values
 y = np.ones(X.shape[0])
 
@@ -63,4 +66,4 @@ srct_class = SRCTClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
 srct_class.fit(X, y)
 
 # Save best estimator
-torch.save(srct_class.model_.state_dict(), srct_class.tensorboard_path + ".pt")
+torch.save(srct_class.model_.state_dict(), "{}_".format(args.gran) + srct_class.tensorboard_path + ".pt")
