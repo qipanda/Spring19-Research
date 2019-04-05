@@ -17,7 +17,7 @@ Format: [Year][First Author],[Short Description of Paper]
     - *2015 Minhas*, SVM to predicate country political regime types
 
 # Modelling interactions between countries with non-textual data
-- *2011 Westveld*, Used linear models to model dyadic trade/conflict levels between 
+- *2011 Westveld-Hoff*, Used linear models to model dyadic trade/conflict levels between 
     countries using things like GDP and cooperation in conflict
 - *1981 RHT O'Kane* Simple linear model with GDP predicting if a coup will occur in a country for
 a set timeframe

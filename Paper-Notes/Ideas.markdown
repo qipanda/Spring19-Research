@@ -72,3 +72,9 @@
 - Combine individual country vectors instead of country pair vectors (less sparse 
     use of training data)
     - Initialize with word2vec vectors?
+
+# April 5th 2019
+- Compare model probability of certain predicate paths with simple frequency counts
+    on the visualization to see if capturing anything novel at all
+- Fit a linear model on the country embeddings (either source or reciever) to see
+    if there is any reasonable correlation for predicting trade data

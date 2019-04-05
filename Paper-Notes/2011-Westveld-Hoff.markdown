@@ -20,7 +20,20 @@ shared governmental organizations as variables.
     polity, CC is considered (similair to traditional gravity model in polisci),
     note all of these vary over time other than distance
     - Data is international trade between 58 countries during 1981=2000 (can be 
-        found in (2010 Westveld and Hoff))
+        found in (2010 Westveld and Hoff)) can also be seen in section 5
+	- Data header is "","i.j.t.exp.imp.ltrade.lgdp.exp.lgdp.imp.ldist.pty.exp.pty.imp.cc" 
+	    - first col is UUID of row
+	    - i is exporter ID
+	    - j is importer ID
+	    - t is time (1-20, repping 1981-2000)
+	    - exp is exporter name
+	    - imp is importer name
+	    - ltrade is ln(trade) from i to j (presumably units are ln($))
+	    - lgdp.exp and lgdp.imp are the ln(GDP)'s of the export and importer respectivly
+	    - ldist is the ln(distance) between i and j
+	    - pty.exp and pty.imp are the polity scores of i and j respectivly
+	    - cc is ??? doesn't seem useful
+
     - Models learned through MCMC
 - Military Conflict Model:
     - Similair to International Trade model but also with level of alliance as a variable
