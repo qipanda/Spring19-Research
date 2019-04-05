@@ -16,7 +16,7 @@ import plotly.graph_objs as go
 from dash.dependencies import Input, Output
 
 # Load data and model
-fcp = FullContextProcessor("../Data/OConnor2013/ocon-nicepaths-year-indexed.txt", "\t")
+fcp = FullContextProcessor("../Data/OConnor2013/ocon-nicepaths-month-indexed.txt", "\t")
 model = SRCTModel(s_cnt=len(fcp.df["SOURCE_IDX"].unique()),
                   r_cnt=len(fcp.df["RECEIVER_IDX"].unique()),
                   p_cnt=len(fcp.df["PRED_IDX"].unique()),
@@ -26,7 +26,7 @@ model = SRCTModel(s_cnt=len(fcp.df["SOURCE_IDX"].unique()),
                   K_p=200,)
 
 model.load_state_dict(torch.load(
-    "K200_lr1.00E+00_lam0.00E+00_alpha1.00E-04_bs32_epochs10.pt",
+    "month_K200_lr1.00E+00_lam0.00E+00_alpha1.00E-03_bs32_epochs10.pt",
     map_location="cpu"))
 
 s_embeds = model.s_embeds.weight.detach().numpy()
@@ -35,7 +35,7 @@ p_embeds = model.p_embeds.weight.detach().numpy()
 
 # Get uniq SRs and Ps that appeared in the training data
 sr_uniq = fcp.df.loc[:,["SOURCE", "RECEIVER", "SOURCE_IDX", "RECEIVER_IDX",
-    "TIME", "YEAR"]].drop_duplicates().sort_values(by="YEAR").reset_index(drop=True)
+    "TIME", "YEAR", "MONTH"]].drop_duplicates().sort_values(by="TIME").reset_index(drop=True)
 sr_uniq.loc[:, "SOURCE_IDX"] += sr_uniq.loc[:, "TIME"]*model.s_cnt
 sr_uniq.loc[:, "RECEIVER_IDX"] += sr_uniq.loc[:, "TIME"]*model.r_cnt
 pred_map = fcp.df.loc[:, ["PRED_IDX", "PRED"]].drop_duplicates() \
@@ -64,8 +64,6 @@ app.layout = html.Div(children=[
                 figure=go.Figure(
                     data=[],
                     layout=go.Layout(
-                        # width=1500,
-                        # height=800,
                         yaxis=dict(
                             range=[0.0, 1.0],
                             tick0=0.0,
@@ -103,10 +101,9 @@ app.layout = html.Div(children=[
 def update_figure(sr: str, num_top_preds: int) -> go.Figure :
     s, r = sr.split("-")
     df_slice = sr_uniq.loc[(sr_uniq["SOURCE"]==s) & (sr_uniq["RECEIVER"]==r), :]
-    dates = [str(row["YEAR"]) for _, row in df_slice.iterrows()]
+    dates = [str(row["YEAR"]) + "-" + str(row["MONTH"]) for _, row in df_slice.iterrows()]
     idxs = df_slice.index.values # idx refrences rows in srt_embeds
     tracked_preds = np.unique(srt_p_sig_sorted[idxs, :num_top_preds].reshape(-1))
-    values = srt_p_sig[idxs, :][:, tracked_preds]
 
     data = []
     for pred_idx in tracked_preds:
