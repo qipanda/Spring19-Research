@@ -78,7 +78,7 @@ class SRCTClassifier(BaseEstimator, ClassifierMixin):
                  lr: float=1e-1, alpha: float=0.5, lam: float=0.0,
                  batch_size: int=32, pred_batch_size: int=100000, train_epochs: int=1, 
                  shuffle: bool=True, torch_threads: int=12, BCE_reduction: str="mean",
-                 pred_thresh: float=0.5, log_fpath: str=None) -> None:
+                 pred_thresh: float=0.5, log_fpath: str=None, hist_mod: int=100) -> None:
         """
         SourceReceiver Classifier wrapper for piping with sklearn.
         """
@@ -115,6 +115,7 @@ class SRCTClassifier(BaseEstimator, ClassifierMixin):
 
         # Logging parameters
         self.log_fpath = log_fpath
+        self.hist_mod = hist_mod
         self.tensorboard_path = "K{}_lr{:.2E}_lam{:.2E}_alpha{:.2E}_bs{}_epochs{}".format(
             self.K_p, self.lr, self.lam, self.alpha, self.batch_size, self.train_epochs)
         self.writer = SummaryWriter(log_dir=(self.log_fpath + "/" + self.tensorboard_path))
@@ -178,6 +179,17 @@ class SRCTClassifier(BaseEstimator, ClassifierMixin):
                 self.writer.add_scalar("train-loss", NLL.item(), cum_batch_id)
                 self.writer.add_scalar("reg-loss", REG.item(), cum_batch_id)
                 self.writer.add_scalar("total-loss", loss.item(), cum_batch_id)
+
+                if cum_batch_id % self.hist_mod == 0:
+                    self.writer.add_histogram(tag="s_embeds",
+                                              values=self.model.s_embeds.weight.detach(),
+                                              gloabl_step=cum_batch_id,)
+                    self.writer.add_histogram(tag="r_embeds",
+                                              values=self.model.r_embeds.weight.detach(),
+                                              gloabl_step=cum_batch_id,)
+                    self.writer.add_histogram(tag="p_embeds",
+                                              values=self.model.p_embeds.weight.detach(),
+                                              gloabl_step=cum_batch_id,)
 
         # # Free memory of train data and unused cached gpu stuff now that training is done
         # del X
