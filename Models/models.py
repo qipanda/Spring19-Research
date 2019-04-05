@@ -183,13 +183,13 @@ class SRCTClassifier(BaseEstimator, ClassifierMixin):
                 if cum_batch_id % self.hist_mod == 0:
                     self.writer.add_histogram(tag="s_embeds",
                                               values=self.model_.s_embeds.weight.detach(),
-                                              gloabl_step=cum_batch_id,)
+                                              global_step=cum_batch_id,)
                     self.writer.add_histogram(tag="r_embeds",
                                               values=self.model_.r_embeds.weight.detach(),
-                                              gloabl_step=cum_batch_id,)
+                                              global_step=cum_batch_id,)
                     self.writer.add_histogram(tag="p_embeds",
                                               values=self.model_.p_embeds.weight.detach(),
-                                              gloabl_step=cum_batch_id,)
+                                              global_step=cum_batch_id,)
 
         # # Free memory of train data and unused cached gpu stuff now that training is done
         # del X
