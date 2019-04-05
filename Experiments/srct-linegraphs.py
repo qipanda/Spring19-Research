@@ -16,7 +16,7 @@ import plotly.graph_objs as go
 from dash.dependencies import Input, Output
 
 # Load data and model
-fcp = FullContextProcessor("../Data/OConnor2013/ocon-nicepaths-indexed.txt", "\t")
+fcp = FullContextProcessor("../Data/OConnor2013/ocon-nicepaths-year-indexed.txt", "\t")
 model = SRCTModel(s_cnt=len(fcp.df["SOURCE_IDX"].unique()),
                   r_cnt=len(fcp.df["RECEIVER_IDX"].unique()),
                   p_cnt=len(fcp.df["PRED_IDX"].unique()),
