@@ -282,6 +282,9 @@ class SRCTSoftmaxClassifier(SRCTClassifier):
                          lam, batch_size, pred_batch_size, train_epochs, shuffle, 
                          torch_threads, BCE_reduction, pred_thresh, log_fpath, hist_mod)
         self.loss_fn = torch.nn.NLLLoss(reduction=self.BCE_reduction)
+        self.tensorboard_path = "softmax_K{}_lr{:.2E}_lam{:.2E}_alpha{:.2E}_bs{}_epochs{}".format(
+            self.K_p, self.lr, self.lam, self.alpha, self.batch_size, self.train_epochs)
+        self.writer = SummaryWriter(log_dir=(self.log_fpath + "/" + self.tensorboard_path))
 
     def returnModel(self):
         """
