@@ -40,7 +40,6 @@ y = fcp.df.loc[:, "PRED_IDX"].values
 # X = X[:1000, :]
 # y = y[:1000]
 
-import ipdb; ipdb.set_trace()
 softmax_class = SRCTSoftmaxClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     r_cnt=len(fcp.df["RECEIVER"].unique()),
                                     p_cnt=len(fcp.df["PRED"].unique()),
