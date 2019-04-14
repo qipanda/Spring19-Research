@@ -33,7 +33,9 @@ shared governmental organizations as variables.
 	    - ldist is the ln(distance) between i and j
 	    - pty.exp and pty.imp are the polity scores of i and j respectivly
 	    - cc is ??? doesn't seem useful
-
+    - Out of sample prediction procedure:
+	- Randomly split to train-test 75-25
+	- calc MSE on hidden trained on 75
     - Models learned through MCMC
 - Military Conflict Model:
     - Similair to International Trade model but also with level of alliance as a variable

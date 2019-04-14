@@ -67,3 +67,5 @@ srct_class.fit(X, y)
 
 # Save best estimator
 torch.save(srct_class.model_.state_dict(), "{}_".format(args.gran) + srct_class.tensorboard_path + ".pt")
+
+# TODO Create torch embeddings?
