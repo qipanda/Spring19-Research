@@ -36,10 +36,6 @@ fcp = FullContextProcessor(
 X = fcp.df.loc[:, ["SOURCE_IDX", "RECEIVER_IDX", "TIME"]].values
 y = fcp.df.loc[:, "PRED_IDX"].values
 
-# #TODO GET RID OF TEST
-# X = X[:1000, :]
-# y = y[:1000]
-
 softmax_class = SRCTSoftmaxClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     r_cnt=len(fcp.df["RECEIVER"].unique()),
                                     p_cnt=len(fcp.df["PRED"].unique()),
