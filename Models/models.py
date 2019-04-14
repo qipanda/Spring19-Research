@@ -235,3 +235,95 @@ class SRCTClassifier(BaseEstimator, ClassifierMixin):
         """
         y_pred = self.predict(X)
         return np.mean(y_pred == y)
+
+class SRCTSoftmaxModel(SRCTModel):
+    def __init__(self, s_cnt: int, r_cnt: int, p_cnt: int, K_s: int, K_r: int, K_p: int,
+                 T: int) -> None:
+        """
+        Source-Receiver model letting the s/r embedding be concatenated and have
+        a timesteps. Each source, receiver, and predicate embedding consequently 
+        has their own K. Source and Receiver hidden dims should add to the word 
+        hidden dim.
+        """
+        super().__init__(s_cnt, r_cnt, p_cnt, K_s, K_r, K_p, T)
+        self.logsoftmax = torch.nn.LogSoftmax(dim=1)
+
+    def forward(self, X: torch.tensor) -> torch.tensor:
+        """
+        Forward pass through SRCT model, concats together s and r tensors from 
+        give t and then applies dot product of that concatenation with the p embeds
+        to get Pr(p|s,r,t) for all p (prob distribution).
+
+        X is assumed n x 3 where x is the batch size, 1st col is s, 2nd is r, 3rd is t
+
+        return batch x p of non-softmaxed probs
+        """
+        n = X.size()[0]
+        s, r, t = X[:, 0], X[:, 1], X[:, 2]
+        st, rt = s + t*self.s_cnt, r + t*self.r_cnt
+
+        prod = torch.matmul(
+            torch.cat((self.s_embeds(st), self.r_embeds(rt)), dim=1),
+            self.p_embeds.weight.transpose(1, 0))
+
+        return self.logsoftmax(prod)
+
+class SRCTSoftmaxClassifier(SRCTClassifier):
+    def __init__(self, s_cnt: int=10, r_cnt: int=10, p_cnt: int=100, T: int=1,
+                 K: int=None, K_s: int=25, K_r: int=25, K_p: int=50,
+                 lr: float=1e-1, alpha: float=0.5, lam: float=0.0,
+                 batch_size: int=32, pred_batch_size: int=100000, train_epochs: int=1, 
+                 shuffle: bool=True, torch_threads: int=12, BCE_reduction: str="mean",
+                 pred_thresh: float=0.5, log_fpath: str=None, hist_mod: int=100) -> None:
+        """
+        SourceReceiver Classifier wrapper for piping with sklearn.
+        """
+        super().__init__(s_cnt, r_cnt, p_cnt, T, K, K_s, K_r, K_p, lr, alpha,
+                         lam, batch_size, pred_batch_size, train_epochs, shuffle, 
+                         torch_threads, BCE_reduction, pred_thresh, log_fpath, hist_mod)
+        self.loss_fn = torch.nn.NLLLoss(reduction=self.BCE_reduction)
+
+    def returnModel(self):
+        """
+        Return a blank SRCTSoftmax model for this classifier
+        """
+        return SRCTSoftmaxModel(self.s_cnt, self.r_cnt, self.p_cnt, self.K_s,
+            self.K_r, self.K_p, self.T)
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        # TODO predict, predict_proba, and score need to be adjusted
+        """
+        Return list of predictions based on [self.pred_thresh]
+        """
+        y_pred = np.empty(0)
+        for i in itertools.count(0, self.pred_batch_size):
+            if i >= X.shape[0]:
+                break
+
+            x = torch.tensor(X[i:i+self.pred_batch_size, :], device=DEVICE)
+            y_batch_pred = self.model_(x).cpu().detach().numpy() > self.pred_thresh
+            y_pred = np.concatenate((y_pred, y_batch_pred))
+
+        return y_pred
+
+    def predict_proba(self, X: np.ndarray) -> np.ndarray:
+        """
+        Return list of probabilitic predictions
+        """
+        y_pred = np.empty(0)
+        for i in itertools.count(0, self.pred_batch_size):
+            if i >= X.shape[0]:
+                break
+
+            x = torch.tensor(X[i:i+self.pred_batch_size, :], device=DEVICE)
+            y_batch_pred = self.model_(x).cpu().detach().numpy()
+            y_pred = np.concatenate((y_pred, y_batch_pred))
+
+        return y_pred
+
+    def score(self, X: np.ndarray, y: np.ndarray) -> float:
+        """
+        Return accuracy average
+        """
+        y_pred = self.predict(X)
+        return np.mean(y_pred == y)
