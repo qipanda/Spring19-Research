@@ -116,7 +116,7 @@ def update_figure(sr: str, num_top_preds: int) -> go.Figure :
                 x=dates,
                 y=p_probs[:, pred_idx],
                 name=fcp.twoway_maps["PRED"]["idx_to_col"][pred_idx],
-                mode="lines+markers",
+                mode="lines",
             )
         )
         
