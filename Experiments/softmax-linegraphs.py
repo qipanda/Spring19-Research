@@ -32,7 +32,7 @@ model = SRCTSoftmaxModel(s_cnt=len(fcp.df["SOURCE_IDX"].unique()),
                           K_p=300,)
 
 model.load_state_dict(torch.load(
-    "month_softmax_K300_lr1.00E+00_lam0.00E+00_alpha1.00E-03_bs32_epochs30.pt",
+    "month_softmax_K300_lr1.00E+00_lam0.00E+00_alpha5.00E-02_bs32_epochs50.pt",
     map_location="cpu"))
 
 s_embeds = model.s_embeds.weight.detach().numpy()
@@ -124,9 +124,8 @@ def update_figure(sr: str, num_top_preds: int) -> go.Figure :
         data=data,
         layout=go.Layout(
             yaxis=dict(
-                range=[0.0, 1.0],
                 tick0=0.0,
-                dtick=0.25,
+                dtick=0.10,
                 showgrid=True,
                 showticklabels=True
             ),
