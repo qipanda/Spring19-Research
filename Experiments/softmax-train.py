@@ -4,8 +4,6 @@ sys.path.append(os.path.dirname(sys.path[0]))
 parser = argparse.ArgumentParser()
 parser.add_argument("-g", "--granularity", dest="gran", type=str,
                     help="the granularity of time step {year, month}")
-parser.add_argument("-ns", "--negsamples", dest="negsamples", type=int,
-                    help="number of neg samples per training sample")
 parser.add_argument("-K", "--hiddendim", dest="K", type=int,
                     help="hidden dim of pred embeddings, /2 for source and receivers")
 parser.add_argument("-lr", "--learnrate", dest="lr", type=float,
