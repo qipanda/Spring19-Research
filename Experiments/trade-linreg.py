@@ -22,6 +22,7 @@ def cartesian_product(left, right):
 
 df_trade = pd.read_csv("../Data/Westveld-Hoff2011/sr-trade.txt", sep="\t")
 
+import ipdb; ipdb.set_trace()
 # load sgns data
 fcp = FullContextProcessor("../Data/OConnor2013/ocon-nicepaths-year-indexed.txt", sep="\t")
 
@@ -62,46 +63,66 @@ model.load_state_dict(torch.load(
     "K200_lr1.00E+00_lam0.00E+00_alpha1.00E-04_bs32_epochs10.pt",
     map_location="cpu"))
 
-# Create the dataset of SR embeddings
-X = np.empty((df_cart.shape[0], model.p_embeds.weight.shape[1]))
+# Create features for Westveld-Hoff 2011 model and srct-model
+X_westhoff = df_cart.loc[:, ["S_LN_GDP", "R_LN_GDP", "LN_DIST", "S_POL", "R_POL", "CC"]]
+X_westhoff["S_POL X R_POL"] = X_westhoff["S_POL"] * X_westhoff["R_POL"]
+X_westhoff = X_westhoff.values
+X_srct = np.zeros((df_cart.shape[0], model.p_embeds.weight.shape[1]))
 y = np.empty(df_cart.shape[0])
+
 s_embeds = model.s_embeds.weight.detach().numpy()
 r_embeds = model.r_embeds.weight.detach().numpy()
 for i, row in df_cart.iterrows():
-    X[i, :] = np.concatenate((
+    X_westhoff[i, :] = np.array([
+        row["S_LN_GDP"],
+        row["R_LN_GDP"],
+        row["LN_DIST"],
+        row["S_POL"],
+        row["R_POL"],
+        row["CC"],
+        row["S_POL"]*row["R_POL"]])
+    X_srct[i, :] = np.concatenate((
         s_embeds[row["SOURCE_IDX"] + row["TIME"]*model.s_cnt],
         r_embeds[row["RECEIVER_IDX"] + row["TIME"]*model.r_cnt]))
     y[i] = row["LN_TRADE"]
 
 # Randomly select 75% for training a linear regression model, predict on 25% and get MSE
 # Repeat many times with different splits to account for variance in sample size
-trials = int(1)
-mses = np.zeros(trials)
-reg = LinearRegression()
+trials = int(10000)
+mses_srct = np.zeros(trials)
+mses_westhoff = np.zeros(trials)
+mses_mean = np.zeros(trials)
+reg_srct = LinearRegression()
+reg_westhoff = LinearRegression()
 for i in range(trials):
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, shuffle=True)
-    reg.fit(X_train, y_train)
-    y_preds = reg.predict(X_test)
-    mses[i] = mean_squared_error(y_true=y_test, y_pred=y_preds)
-
-import ipdb; ipdb.set_trace()
+    train_idxs, test_idxs, _, _ = train_test_split(np.arange(df_cart.shape[0]), y, test_size=0.25, shuffle=True)
+    reg_srct.fit(X_srct[train_idxs], y[train_idxs])
+    reg_westhoff.fit(X_westhoff[train_idxs], y[train_idxs])
+    y_preds_srct = reg_srct.predict(X_srct[test_idxs])
+    y_preds_westhoff = reg_westhoff.predict(X_westhoff[test_idxs])
+    y_preds_mean = np.ones(test_idxs.shape[0])*np.mean(y[train_idxs])
+    mses_srct[i] = mean_squared_error(y_true=y[test_idxs], y_pred=y_preds_srct)
+    mses_westhoff[i] = mean_squared_error(y_true=y[test_idxs], y_pred=y_preds_westhoff)
+    mses_mean[i] = mean_squared_error(y_true=y[test_idxs], y_pred=y_preds_mean)
 
 # TODO compare with Westveld-Hoff model on same train-test splitting
-print("MSE: {}".format(np.mean(mses)))
+print("mean MSE srct: {} | mean MSE westhoff: {} | mean MSE baseline: {}"\
+    .format(np.mean(mses_srct), np.mean(mses_westhoff), np.mean(mses_mean)))
+
 # Plot histogram of mse's
-data = [go.Histogram(x=mses)]
+data = [go.Histogram(x=mses_srct), go.Histogram(x=mses_westhoff), go.Histogram(x=mses_mean)]
 plotly.offline.plot(data, filename="mse_hist_lin_reg.html")
 
-# Plot projections onto the line as x and the ln(trade) as y seperately for train and test
-W = reg.coef_
-X_train_plot = np.linalg.norm(X_train*W, ord=2.0, axis=1)
-y_train_plot = y_train - reg.predict(X_train)
-train_trace = go.Scatter(x=X_train_plot, y=y_train_plot, mode="markers", name="train")
+# # Plot projections onto the line as x and the ln(trade) as y seperately for train and test
+# W = reg.coef_
+# X_train_plot = np.linalg.norm(X_train*W, ord=2.0, axis=1)
+# y_train_plot = reg.predict(X_train) - y_train
+# train_trace = go.Scatter(x=X_train_plot, y=y_train_plot, mode="markers", name="train")
 
-X_test_plot = np.linalg.norm(X_test*W, ord=2.0, axis=1)
-y_test_plot = y_test - y_preds
-test_trace = go.Scatter(x=X_test_plot, y=y_test_plot, mode="markers", name="test")
+# X_test_plot = np.linalg.norm(X_test*W, ord=2.0, axis=1)
+# y_test_plot = y_preds - y_test
+# test_trace = go.Scatter(x=X_test_plot, y=y_test_plot, mode="markers", name="test")
 
-data = [train_trace, test_trace]
-plotly.offline.plot(data, filename="projected_lin_reg.html")
+# data = [train_trace, test_trace]
+# plotly.offline.plot(data, filename="projected_lin_reg.html")
 
