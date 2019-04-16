@@ -1,6 +1,7 @@
 # Import from Research directory
 import sys, os
 import itertools
+from typing import List
 sys.path.append(os.path.dirname(sys.path[0]))
 
 # Import custom models
@@ -15,7 +16,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 
 # Load data and model
 fcp = FullContextProcessor("../Data/OConnor2013/ocon-nicepaths-month-indexed.txt", "\t")
@@ -39,31 +40,48 @@ s_embeds = model.s_embeds.weight.detach().numpy()
 r_embeds = model.r_embeds.weight.detach().numpy()
 p_embeds = model.p_embeds.weight.detach().numpy()
 
+freqs = fcp.df.groupby(["SOURCE_IDX", "RECEIVER_IDX", "PRED_IDX", "TIME"])\
+    .size()\
+    .unstack(fill_value=0)\
+    .stack()
+
 # calculate dates in x axis
 dates = fcp.df.sort_values(by="TIME").loc[:, ["YEAR", "MONTH"]].drop_duplicates().values.tolist()
 dates = [str(y) + "-" + str(m) for y, m in dates]
 
-# Calculate sr-dropdown options
-sr_combinations = itertools.product(
-    fcp.twoway_maps["SOURCE"]["col_to_idx"].keys(),
-    fcp.twoway_maps["RECEIVER"]["col_to_idx"].keys())
-options = [{"label":s + "-" + r, "value":s + "-" + r} for s, r in sr_combinations if s != r]
+# dropdown options
+s_options = [{"label":s, "value":s} for s in fcp.twoway_maps["SOURCE"]["col_to_idx"].keys()]
+r_options = [{"label":r, "value":r} for r in fcp.twoway_maps["RECEIVER"]["col_to_idx"].keys()]
+p_options = [{"label":p, "value":p} for p in fcp.twoway_maps["PRED"]["col_to_idx"].keys()]
 
 # Start the app
 app = dash.Dash(__name__)
 app.layout = html.Div(children=[
-    html.H1("SR Top Pred Embeddings by Model Probability"),
+    html.H1("Source-Receiver Skip-Gram Predicate Path Probabilities over Time"),
     html.Div(children=[
         html.Div(style={"width":"70%", "float":"left"}, children=[
+            html.H2("Model graph"),
             dcc.Graph(
                 id='primary-graph',
                 figure=go.Figure(
                     data=[],
                     layout=go.Layout(
+                        showlegend=True,
                         yaxis=dict(
-                            range=[0.0, 1.0],
-                            tick0=0.0,
-                            dtick=0.25,
+                            showgrid=True,
+                            showticklabels=True,
+                        ),
+                    )
+                )
+            ),
+            html.H2("Frequency graph"),
+            dcc.Graph(
+                id="freq-graph",
+                figure=go.Figure(
+                    data=[],
+                    layout=go.Layout(
+                        showlegend=True,
+                        yaxis=dict(
                             showgrid=True,
                             showticklabels=True,
                         ),
@@ -72,46 +90,104 @@ app.layout = html.Div(children=[
             )
         ]),
         html.Div(style={"width":"30%", "float":"left"}, children=[
+            html.H4("Source"),
             dcc.Dropdown(
-                id='sr-dropdown',
-                options=options,
-                value="ISR-PSE",
+                id='s-dropdown',
+                placeholder="Select source country",
+                options=s_options,
+                value="ISR",
                 clearable=False,
             ),
+            html.H4("Receiver"),
+            dcc.Dropdown(
+                id="r-dropdown",
+                placeholder="Select receiver country",
+                options=r_options,
+                value="PSE",
+                clearable=False,
+            ),
+            html.H4("Number top predicates (on average over all timesteps)"),
             dcc.Slider(
                 id="top-slider",
                 min=1,
-                max=10,
+                max=20,
                 step=1,
-                value=1,
-                marks={i: str(i) for i in range(1, 10+1)},
+                value=5,
+                marks={i: str(i) for i in range(1, 20+1)},
+            ),
+            html.H4(""),
+            html.Button("Plot top predicates",
+                id="top-button",
+                n_clicks_timestamp=1,
+            ),
+            html.H4("Number randomized predicates"),
+            dcc.Slider(
+                id="rand-slider",
+                min=1,
+                max=20,
+                step=1,
+                value=5,
+                marks={i: str(i) for i in range(1, 20+1)},
+            ),
+            html.H4(""),
+            html.Button("Plot random predicates",
+                id="rand-button",
+                n_clicks_timestamp=0,
+            ),
+            html.H4("Manual predicate selection"),
+            dcc.Dropdown(
+                id="p-dropdown",
+                placeholder="Select predicates to see",
+                options=p_options,
+                multi=True,
+            ),
+            html.H4(""),
+            html.Button("Plot manual predicates",
+                id="manual-button",
+                n_clicks_timestamp=0,
             ),
         ]),
     ]),
 ])
 
 @app.callback(
-    Output("primary-graph", "figure"),
-    [Input("sr-dropdown", "value"), Input("top-slider", "value")],
-)
-def update_figure(sr: str, num_top_preds: int) -> go.Figure :
+    [Output("primary-graph", "figure"),
+     Output("freq-graph", "figure")],
+    [Input("top-button", "n_clicks_timestamp"),
+     Input("rand-button", "n_clicks_timestamp"),
+     Input("manual-button", "n_clicks_timestamp")],
+    [State("s-dropdown", "value"), 
+     State("r-dropdown", "value"),
+     State("p-dropdown", "value"),
+     State("top-slider", "value"),
+     State("rand-slider", "value")])
+def update_figure(top_ts: int, rand_ts: int, man_ts: int, s: str, r: str, 
+                  man_p: List[str], num_top_preds: int, num_rand: int) -> go.Figure:
     # Get the s,r idxs
-    s, r = sr.split("-")
     s = fcp.twoway_maps["SOURCE"]["col_to_idx"][s]
     r = fcp.twoway_maps["RECEIVER"]["col_to_idx"][r]
 
     # get p scores for all srt combinations
     X = torch.tensor([[s, r, t] for t in range(model.T)])
     p_probs = sp.special.softmax(model(X).detach().numpy(), axis=1)
-                       
-    p_probs_sorted = np.argsort(-p_probs) # min to max, neg to do max to min
+    
+    # see which button was most recently pressed
+    button_tms = {"top":top_ts, "rand":rand_ts, "man":man_ts}
+    recent_button = max(button_tms.items(), key=(lambda dict_tup: dict_tup[1]))[0]
 
-    # find which p's to track based on num_top_preds
-    tracked_preds = np.unique(p_probs_sorted[:, :num_top_preds].reshape(-1))
+    # Case 1: Want top preds
+    if recent_button == "top":  
+        p_probs_sorted = np.argsort(-np.mean(p_probs, axis=0)) # min to max, neg to do max to min
+        tracked_preds = p_probs_sorted[:num_top_preds]
+    elif recent_button == "rand":
+        tracked_preds = np.random.choice(a=p_probs.shape[1], size=num_rand, replace=False)
+    elif recent_button == "man":
+        tracked_preds = [fcp.twoway_maps["PRED"]["col_to_idx"][p] for p in man_p]
 
-    data = []
+    prob_data = []
+    freq_data = []
     for pred_idx in tracked_preds:
-        data.append(
+        prob_data.append(
             go.Scatter(
                 x=dates,
                 y=p_probs[:, pred_idx],
@@ -119,18 +195,44 @@ def update_figure(sr: str, num_top_preds: int) -> go.Figure :
                 mode="lines",
             )
         )
+
+        # find freq data for this pred
+        try:
+            y_freq = freqs.loc[s, r, pred_idx].values
+        except:
+            y_freq = np.zeros(model.T)
+
+        freq_data.append(
+            go.Scatter(
+                x=dates,
+                y=y_freq,
+                name=fcp.twoway_maps["PRED"]["idx_to_col"][pred_idx],
+                mode="lines"
+            )
+        )
         
-    return go.Figure(
-        data=data,
+    prob_figure =  go.Figure(
+        data=prob_data,
         layout=go.Layout(
+            showlegend=True,
             yaxis=dict(
-                tick0=0.0,
-                dtick=0.10,
                 showgrid=True,
                 showticklabels=True
             ),
         )
     )
+    freq_figure =  go.Figure(
+        data=freq_data,
+        layout=go.Layout(
+            showlegend=True,
+            yaxis=dict(
+                showgrid=True,
+                showticklabels=True
+            ),
+        )
+    )
+
+    return prob_figure, freq_figure
 
 if __name__ == '__main__':
     app.run_server(debug=True)
