@@ -4,7 +4,7 @@ sys.path.append(os.path.dirname(sys.path[0]))
 
 # Import custom modules
 from Preprocessing.FullContextProcessor import FullContextProcessor
-from Models.models import SRCTModel
+from Models.models import SRCTModel, SRCTSoftmaxModel
 
 # Import installed modules
 import pandas as pd
@@ -22,7 +22,6 @@ def cartesian_product(left, right):
 
 df_trade = pd.read_csv("../Data/Westveld-Hoff2011/sr-trade.txt", sep="\t")
 
-import ipdb; ipdb.set_trace()
 # load sgns data
 fcp = FullContextProcessor("../Data/OConnor2013/ocon-nicepaths-year-indexed.txt", sep="\t")
 
@@ -105,7 +104,7 @@ for i in range(trials):
     mses_westhoff[i] = mean_squared_error(y_true=y[test_idxs], y_pred=y_preds_westhoff)
     mses_mean[i] = mean_squared_error(y_true=y[test_idxs], y_pred=y_preds_mean)
 
-# TODO compare with Westveld-Hoff model on same train-test splitting
+# compare with Westveld-Hoff model on same train-test splitting
 print("mean MSE srct: {} | mean MSE westhoff: {} | mean MSE baseline: {}"\
     .format(np.mean(mses_srct), np.mean(mses_westhoff), np.mean(mses_mean)))
 

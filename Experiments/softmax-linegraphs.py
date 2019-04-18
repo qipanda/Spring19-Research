@@ -54,6 +54,20 @@ s_options = [{"label":s, "value":s} for s in fcp.twoway_maps["SOURCE"]["col_to_i
 r_options = [{"label":r, "value":r} for r in fcp.twoway_maps["RECEIVER"]["col_to_idx"].keys()]
 p_options = [{"label":p, "value":p} for p in fcp.twoway_maps["PRED"]["col_to_idx"].keys()]
 
+# y-range slider labels
+y_range_marks = {0:"0.0", 1:"1.0"}
+y_range_marks.update({i/10:str(i/10) for i in range(1, 10)})
+
+# calculate daterange slider options
+time_slider_marks = fcp.df.loc[:, ["YEAR", "MONTH", "TIME"]]\
+    .drop_duplicates()\
+    .sort_values(by="TIME")\
+    .set_index("TIME", drop=True)
+time_slider_marks["DATE"] = time_slider_marks.apply(
+    lambda row: str(row["YEAR"]) + "-" + str(row["MONTH"]), axis=1)
+time_slider_marks = time_slider_marks.to_dict()["DATE"]
+label_marks = {mark[0]:"'" + mark[1].split("-")[0][-2:] for mark in time_slider_marks.items() if mark[0] % 12 == 0}
+
 # Start the app
 app = dash.Dash(__name__)
 app.layout = html.Div(children=[
@@ -90,23 +104,60 @@ app.layout = html.Div(children=[
             )
         ]),
         html.Div(style={"width":"30%", "float":"left"}, children=[
-            html.H4("Source"),
-            dcc.Dropdown(
-                id='s-dropdown',
-                placeholder="Select source country",
-                options=s_options,
-                value="ISR",
-                clearable=False,
+            html.H4("Source Receiver selection"),
+            html.Div(children=[
+                html.Div(style={"width":"50%", "float":"left"}, children=[
+                    dcc.Dropdown(
+                        id='s-dropdown',
+                        placeholder="Select source country",
+                        options=s_options,
+                        value="ISR",
+                        clearable=False,
+                    ),
+                ]),
+                html.Div(style={"width":"50%", "float":"left"}, children=[
+                    dcc.Dropdown(
+                        id="r-dropdown",
+                        placeholder="Select receiver country",
+                        options=r_options,
+                        value="PSE",
+                        clearable=False,
+                    ),
+                ]),
+            ]),
+            html.Div(style={"margin-bottom":"100px"}, children=[
+                html.Div(style={"width":"30%", "float":"left"}, children=[
+                    dcc.Checklist(
+                        id="man-y-range-checks",
+                        options=[{"label":"Manual prob-range", "value":"man_y_range"},
+                                 {"label":"Log prob-range", "value":"log_y_range"}],
+                        values=[]
+                    )
+                ]),
+                html.Div(style={"width":"70%", "float":"left"}, children=[
+                    dcc.RangeSlider(
+                        id="man-y-range-slider",
+                        min=0,
+                        max=1,
+                        value=[0, 1.0],
+                        step=0.1,
+                        included=True,
+                        pushable=0,
+                        marks=y_range_marks,
+                    )
+                ]),
+            ]),
+            html.H4("Top predicate time range"),
+            dcc.RangeSlider(
+                id="top-date-slider",
+                min=0,
+                max=len(time_slider_marks)-1,
+                value=[0, len(time_slider_marks)-1],
+                pushable=0,
+                marks=label_marks,
             ),
-            html.H4("Receiver"),
-            dcc.Dropdown(
-                id="r-dropdown",
-                placeholder="Select receiver country",
-                options=r_options,
-                value="PSE",
-                clearable=False,
-            ),
-            html.H4("Number top predicates (on average over all timesteps)"),
+            html.Div(id="top-date-display", style={"margin-top":30}),
+            html.H4("Number top predicates (on average over selected time range)"),
             dcc.Slider(
                 id="top-slider",
                 min=1,
@@ -151,18 +202,40 @@ app.layout = html.Div(children=[
 ])
 
 @app.callback(
+    [Output("top-date-display", "children")],
+    [Input("top-date-slider", "value")])
+def update_top_display(range_slider_value: List[int]):
+    return ["Selected date range to find top predicates: {} to {}".format(
+        time_slider_marks[range_slider_value[0]],
+        time_slider_marks[range_slider_value[1]])]
+
+@app.callback(
     [Output("primary-graph", "figure"),
      Output("freq-graph", "figure")],
     [Input("top-button", "n_clicks_timestamp"),
      Input("rand-button", "n_clicks_timestamp"),
-     Input("manual-button", "n_clicks_timestamp")],
+     Input("manual-button", "n_clicks_timestamp"),
+     Input("man-y-range-checks", "values"),
+     Input("man-y-range-slider", "value"),],
     [State("s-dropdown", "value"), 
      State("r-dropdown", "value"),
      State("p-dropdown", "value"),
      State("top-slider", "value"),
-     State("rand-slider", "value")])
-def update_figure(top_ts: int, rand_ts: int, man_ts: int, s: str, r: str, 
-                  man_p: List[str], num_top_preds: int, num_rand: int) -> go.Figure:
+     State("rand-slider", "value"),
+     State("top-date-slider", "value"),])
+def update_figure(top_ts: int, rand_ts: int, man_ts: int,
+                  man_y_range_checks: List[bool], man_y_range: List[float],
+                  s: str, r: str, man_p: List[str], num_top_preds: int, 
+                  num_rand: int, tm_range: List[int],) -> go.Figure:
+
+    # If manual range, set it
+    prob_y_range = man_y_range if "man_y_range" in man_y_range_checks else None
+    if "log_y_range" in man_y_range_checks:
+        prob_y_log = "log"
+        prob_y_range = None # can't use with log
+    else:
+        prob_y_log = None
+
     # Get the s,r idxs
     s = fcp.twoway_maps["SOURCE"]["col_to_idx"][s]
     r = fcp.twoway_maps["RECEIVER"]["col_to_idx"][r]
@@ -177,7 +250,7 @@ def update_figure(top_ts: int, rand_ts: int, man_ts: int, s: str, r: str,
 
     # Case 1: Want top preds
     if recent_button == "top":  
-        p_probs_sorted = np.argsort(-np.mean(p_probs, axis=0)) # min to max, neg to do max to min
+        p_probs_sorted = np.argsort(-np.mean(p_probs[tm_range[0]:tm_range[1]+1, :], axis=0))
         tracked_preds = p_probs_sorted[:num_top_preds]
     elif recent_button == "rand":
         tracked_preds = np.random.choice(a=p_probs.shape[1], size=num_rand, replace=False)
@@ -215,9 +288,15 @@ def update_figure(top_ts: int, rand_ts: int, man_ts: int, s: str, r: str,
         data=prob_data,
         layout=go.Layout(
             showlegend=True,
+            xaxis=dict(
+                title="Date"
+            ),
             yaxis=dict(
+                title="Model Prob Pr(p|s,r,t)",
                 showgrid=True,
-                showticklabels=True
+                showticklabels=True,
+                range=prob_y_range,
+                type=prob_y_log
             ),
         )
     )
@@ -225,7 +304,11 @@ def update_figure(top_ts: int, rand_ts: int, man_ts: int, s: str, r: str,
         data=freq_data,
         layout=go.Layout(
             showlegend=True,
+            xaxis=dict(
+                title="Date"
+            ),
             yaxis=dict(
+                title="Frequency in News",
                 showgrid=True,
                 showticklabels=True
             ),
