@@ -51,8 +51,8 @@ model.load_state_dict(torch.load(
 # Create dataset in matrix representation
 X = np.zeros((df_mid.shape[0], model.p_embeds.weight.shape[1]))
 y = np.empty(df_mid.shape[0])
-s_embeds = model.s_embeds.weight.detach().numpy()
-r_embeds = model.r_embeds.weight.detach().numpy()
+s_embeds = model.s_embeds.weight.detach().cpu().numpy()
+r_embeds = model.r_embeds.weight.detach().cpu().numpy()
 
 for i, row in enumerate(df_mid.loc[:, ["SOURCE_IDX", "RECEIVER_IDX", "TIME", "HOST"]]\
     .itertuples(index=False)):
