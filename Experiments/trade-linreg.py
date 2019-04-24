@@ -49,17 +49,30 @@ df_corpus["IN_ORIG"] = True
 df_cart = df_cart.merge(df_corpus, on=["SOURCE", "RECEIVER", "YEAR"], how="left")
 df_cart.loc[df_cart["IN_ORIG"].isna(), "IN_ORIG"] = False
 
-# Load model to use as features
-model = SRCTModel(s_cnt=len(fcp.df["SOURCE_IDX"].unique()),
-                  r_cnt=len(fcp.df["RECEIVER_IDX"].unique()),
-                  p_cnt=len(fcp.df["PRED_IDX"].unique()),
-                  T=len(fcp.df["TIME"].unique()),
-                  K_s=100,
-                  K_r=100,
-                  K_p=200,)
+# # Load model to use as features
+# model = SRCTModel(s_cnt=len(fcp.df["SOURCE_IDX"].unique()),
+#                   r_cnt=len(fcp.df["RECEIVER_IDX"].unique()),
+#                   p_cnt=len(fcp.df["PRED_IDX"].unique()),
+#                   T=len(fcp.df["TIME"].unique()),
+#                   K_s=100,
+#                   K_r=100,
+#                   K_p=200,)
+
+# model.load_state_dict(torch.load(
+#     "K200_lr1.00E+00_lam0.00E+00_alpha1.00E-04_bs32_epochs10.pt",
+#     map_location="cpu"))
+
+# Load softmax model to use as features
+model = SRCTSoftmaxModel(s_cnt=len(fcp.df["SOURCE_IDX"].unique()),
+                         r_cnt=len(fcp.df["RECEIVER_IDX"].unique()),
+                         p_cnt=len(fcp.df["PRED_IDX"].unique()),
+                         T=len(fcp.df["TIME"].unique()),
+                         K_s=150,
+                         K_r=150,
+                         K_p=300,)
 
 model.load_state_dict(torch.load(
-    "K200_lr1.00E+00_lam0.00E+00_alpha1.00E-04_bs32_epochs10.pt",
+    "year_softmax_K300_lr1.00E+00_lam0.00E+00_alpha5.00E-02_bs32_epochs50.pt",
     map_location="cpu"))
 
 # Create features for Westveld-Hoff 2011 model and srct-model
@@ -82,12 +95,12 @@ for i, row in df_cart.iterrows():
         row["S_POL"]*row["R_POL"]])
     X_srct[i, :] = np.concatenate((
         s_embeds[row["SOURCE_IDX"] + row["TIME"]*model.s_cnt],
-        r_embeds[row["RECEIVER_IDX"] + row["TIME"]*model.r_cnt]))
+        r_embeds[row["RECEIVER_IDX"] + row["TIME"]*model.r_cnt],
     y[i] = row["LN_TRADE"]
 
 # Randomly select 75% for training a linear regression model, predict on 25% and get MSE
 # Repeat many times with different splits to account for variance in sample size
-trials = int(10000)
+trials = int(1000)
 mses_srct = np.zeros(trials)
 mses_westhoff = np.zeros(trials)
 mses_mean = np.zeros(trials)
