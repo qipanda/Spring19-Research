@@ -19,6 +19,7 @@ from sklearn.metrics import make_scorer, roc_auc_score
 
 # Load cleaned data
 df_mid = pd.read_csv("../Data/DYDMID3.1/mid-clean.txt", sep="\t")
+df_mid = df_mid.loc[df_mid["IN_ORIG"]]
 
 # load sgns data
 fcp = FullContextProcessor("../Data/OConnor2013/ocon-nicepaths-month-indexed.txt", sep="\t")
@@ -65,9 +66,10 @@ for i, row in enumerate(df_mid.loc[:, ["SOURCE_IDX", "RECEIVER_IDX", "TIME", "HO
 logreg = LogisticRegression()
 
 param_grid = {
-    "C":[1.0/1e4, 1.0/1e3, 1.0/1e2, 1.0/1e1, 1.0, 1.0/1e-1, 1.0/1e-2],
+    "C":[1.0/1e1, 1.0, 1.0/1e-1, 1.0/1e-2, 1.0/1e-3, 1.0/1e-4],
+    "max_iter":[10000],
     "penalty":["l1"],
-    "solver":["saga"],
+    "solver":["liblinear", "saga"],
 }
 scoring = {
     "ROC_AUC": make_scorer(roc_auc_score)

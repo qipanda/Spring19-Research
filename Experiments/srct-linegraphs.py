@@ -27,12 +27,12 @@ model = SRCTModel(s_cnt=len(fcp.df["SOURCE_IDX"].unique()),
                   r_cnt=len(fcp.df["RECEIVER_IDX"].unique()),
                   p_cnt=len(fcp.df["PRED_IDX"].unique()),
                   T=len(fcp.df["TIME"].unique()),
-                  K_s=100,
-                  K_r=100,
-                  K_p=200,)
+                  K_s=150,
+                  K_r=150,
+                  K_p=300,)
 
 model.load_state_dict(torch.load(
-    "month_K200_lr1.00E+00_lam0.00E+00_alpha1.00E-03_bs32_epochs10.pt",
+    "month_K300_lr1.00E+00_lam0.00E+00_alpha1.00E-03_bs32_epochs50.pt",
     map_location="cpu"))
 
 s_embeds = model.s_embeds.weight.detach().numpy()
@@ -264,8 +264,8 @@ def update_figure(top_ts: int, rand_ts: int, man_ts: int,
     for pred_idx in tracked_preds:
         prob_data.append(
             go.Scatter(
-                x=dates,
-                y=p_probs[:, pred_idx],
+                x=dates[tm_range[0]:tm_range[1]+1],
+                y=p_probs[:, pred_idx][tm_range[0]:tm_range[1]+1],
                 name=fcp.twoway_maps["PRED"]["idx_to_col"][pred_idx],
                 mode="lines",
             )
@@ -279,8 +279,8 @@ def update_figure(top_ts: int, rand_ts: int, man_ts: int,
 
         freq_data.append(
             go.Scatter(
-                x=dates,
-                y=y_freq,
+                x=dates[tm_range[0]:tm_range[1]+1],
+                y=y_freq[tm_range[0]:tm_range[1]+1],
                 name=fcp.twoway_maps["PRED"]["idx_to_col"][pred_idx],
                 mode="lines"
             )

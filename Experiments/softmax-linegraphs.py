@@ -262,8 +262,8 @@ def update_figure(top_ts: int, rand_ts: int, man_ts: int,
     for pred_idx in tracked_preds:
         prob_data.append(
             go.Scatter(
-                x=dates,
-                y=p_probs[:, pred_idx],
+                x=dates[tm_range[0]:tm_range[1]+1],
+                y=p_probs[:, pred_idx][tm_range[0]:tm_range[1]+1],
                 name=fcp.twoway_maps["PRED"]["idx_to_col"][pred_idx],
                 mode="lines",
             )
@@ -277,8 +277,8 @@ def update_figure(top_ts: int, rand_ts: int, man_ts: int,
 
         freq_data.append(
             go.Scatter(
-                x=dates,
-                y=y_freq,
+                x=dates[tm_range[0]:tm_range[1]+1],
+                y=y_freq[tm_range[0]:tm_range[1]+1],
                 name=fcp.twoway_maps["PRED"]["idx_to_col"][pred_idx],
                 mode="lines"
             )
