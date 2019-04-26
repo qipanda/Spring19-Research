@@ -21,7 +21,7 @@ rand_state = 0
 
 # Load cleaned data and filter down to what exists in OCon
 df_mid = pd.read_csv("../Data/DYDMID3.1/mid-clean.txt", sep="\t")
-# df_mid = df_mid.loc[df_mid["IN_ORIG"]]
+df_mid = df_mid.loc[df_mid["IN_ORIG"]]
 
 # load model data for model parameters later
 fcp = FullContextProcessor("../Data/OConnor2013/ocon-nicepaths-month-indexed.txt", sep="\t")
@@ -34,7 +34,7 @@ y = df_mid["HOST"].values
 
 # For each model, do 5-folds cv, use best for eval and record evald ROC_AUC
 model_alphas = ["1.00E-01", "1.00E-02", "1.00E-03", "1.00E-04", "1.00E-05"]
-logreg = LogisticRegression(penalty="l2", solver="saga", max_iter=10000, tol=1e-5)
+logreg = LogisticRegression(penalty="l2", solver="saga", max_iter=1000)
 results = []
 for alpha in model_alphas:
     # Load model and gets the embeddings to use as features
@@ -62,12 +62,12 @@ for alpha in model_alphas:
 
     # Perform 5-fold cv based on roc_auc
     param_grid = {
-        "C":[1.0/1e-2, 1.0/1e-3, 1.0/1e-4, 1.0/1e-5, 1.0/1e-6, 1.0/1e-7, 1.0/1e-8],
+        "C":[1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8],
     }
     gs = GridSearchCV(estimator=logreg,
                       param_grid=param_grid,
                       scoring={"roc_auc":make_scorer(roc_auc_score, needs_threshold=True)},
-                      n_jobs=5,
+                      n_jobs=-1,
                       cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=rand_state),
                       refit="roc_auc",
                       verbose=30,
@@ -82,6 +82,8 @@ for alpha in model_alphas:
             s_embeds[row["SOURCE_IDX"] + row["TIME"]*model.s_cnt],
             r_embeds[row["RECEIVER_IDX"] + row["TIME"]*model.r_cnt]))
     test_score = gs.score(X_test, y_test) 
+    print("alpha: {} | best_C: {} | test_score_roc_auc: {}".format(
+        alpha, gs.best_params_["C"], test_score))
 
     # Log results
     for i in range(len(param_grid["C"])):
@@ -96,4 +98,4 @@ for alpha in model_alphas:
 
 # Save results as a dataframe
 df_results = pd.DataFrame(results)
-df_results.to_csv("mids-logreg-interpolate-results.txt", sep="\t", index=False)
+df_results.to_csv("mids-logreg-results.txt", sep="\t", index=False)
