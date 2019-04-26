@@ -67,7 +67,7 @@ for alpha in model_alphas:
     gs = GridSearchCV(estimator=logreg,
                       param_grid=param_grid,
                       scoring={"roc_auc":make_scorer(roc_auc_score, needs_threshold=True)},
-                      n_jobs=1,
+                      n_jobs=5,
                       cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=rand_state),
                       refit="roc_auc",
                       verbose=30,
@@ -84,13 +84,15 @@ for alpha in model_alphas:
     test_score = gs.score(X_test, y_test) 
 
     # Log results
-    results.append({
-        "alpha":alpha,
-        "lambda":1.0/gs.cv_results_["params"][0]["C"],
-        "mean_train_roc_auc":gs.cv_results_["mean_train_roc_auc"][0],
-        "mean_eval_roc_auc":gs.cv_results_["mean_test_roc_auc"][0],
-        "test_roc_auc":test_score,
-    })
+    for i in range(len(param_grid["C"])):
+        results.append({
+            "alpha":alpha,
+            "lam":1.0/gs.cv_results_["params"][i]["C"],
+            "mean_train_roc_auc":gs.cv_results_["mean_train_roc_auc"][i],
+            "mean_eval_roc_auc":gs.cv_results_["mean_test_roc_auc"][i],
+            "best_lambda":1.0/gs.best_params_["C"],
+            "test_roc_auc":test_score,
+        })
 
 # Save results as a dataframe
 df_results = pd.DataFrame(results)
