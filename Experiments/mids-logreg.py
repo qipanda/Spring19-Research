@@ -21,7 +21,7 @@ rand_state = 0
 
 # Load cleaned data and filter down to what exists in OCon
 df_mid = pd.read_csv("../Data/DYDMID3.1/mid-clean.txt", sep="\t")
-df_mid = df_mid.loc[df_mid["IN_ORIG"]]
+# df_mid = df_mid.loc[df_mid["IN_ORIG"]]
 
 # load model data for model parameters later
 fcp = FullContextProcessor("../Data/OConnor2013/ocon-nicepaths-month-indexed.txt", sep="\t")
@@ -98,4 +98,4 @@ for alpha in model_alphas:
 
 # Save results as a dataframe
 df_results = pd.DataFrame(results)
-df_results.to_csv("mids-logreg-fast-results.txt", sep="\t", index=False)
+df_results.to_csv("mids-logreg-fast-inter-results.txt", sep="\t", index=False)
