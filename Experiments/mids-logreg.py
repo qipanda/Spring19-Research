@@ -98,4 +98,4 @@ for alpha in model_alphas:
 
 # Save results as a dataframe
 df_results = pd.DataFrame(results)
-df_results.to_csv("mids-logreg-results.txt", sep="\t", index=False)
+df_results.to_csv("mids-logreg-fast-results.txt", sep="\t", index=False)
