@@ -49,41 +49,34 @@ df_corpus["IN_ORIG"] = True
 df_cart = df_cart.merge(df_corpus, on=["SOURCE", "RECEIVER", "YEAR"], how="left")
 df_cart.loc[df_cart["IN_ORIG"].isna(), "IN_ORIG"] = False
 
-# # Load model to use as features
-# model = SRCTModel(s_cnt=len(fcp.df["SOURCE_IDX"].unique()),
-#                   r_cnt=len(fcp.df["RECEIVER_IDX"].unique()),
-#                   p_cnt=len(fcp.df["PRED_IDX"].unique()),
-#                   T=len(fcp.df["TIME"].unique()),
-#                   K_s=100,
-#                   K_r=100,
-#                   K_p=200,)
+# Load various softmax models to use as features
+model_alphas = ["1.00E-01", "1.00E-02", "1.00E-03", "1.00E-04", "1.00E-05"]
+embeds = {}
+for alpha in model_alphas:
+    model = SRCTSoftmaxModel(s_cnt=len(fcp.df["SOURCE_IDX"].unique()),
+                             r_cnt=len(fcp.df["RECEIVER_IDX"].unique()),
+                             p_cnt=len(fcp.df["PRED_IDX"].unique()),
+                             T=len(fcp.df["TIME"].unique()),
+                             K_s=150,
+                             K_r=150,
+                             K_p=300,)
 
-# model.load_state_dict(torch.load(
-#     "K200_lr1.00E+00_lam0.00E+00_alpha1.00E-04_bs32_epochs10.pt",
-#     map_location="cpu"))
+    model.load_state_dict(torch.load(
+        "year_softmax_K300_lr1.00E+00_lam0.00E+00_alpha{}_bs32_epochs50.pt".format(alpha),
+        map_location="cpu"))
 
-# Load softmax model to use as features
-model = SRCTSoftmaxModel(s_cnt=len(fcp.df["SOURCE_IDX"].unique()),
-                         r_cnt=len(fcp.df["RECEIVER_IDX"].unique()),
-                         p_cnt=len(fcp.df["PRED_IDX"].unique()),
-                         T=len(fcp.df["TIME"].unique()),
-                         K_s=150,
-                         K_r=150,
-                         K_p=300,)
-
-model.load_state_dict(torch.load(
-    "year_softmax_K300_lr1.00E+00_lam0.00E+00_alpha5.00E-02_bs32_epochs50.pt",
-    map_location="cpu"))
+    embeds[alpha] = {
+        "s_embeds":model.s_embeds.weight.detach().numpy(),
+        "r_embeds":model.r_embeds.weight.detach().numpy(),
+        "X":np.zeros((df_cart.shape[0], model.p_embeds.weight.shape[1]))
+    }
 
 # Create features for Westveld-Hoff 2011 model and srct-model
 X_westhoff = df_cart.loc[:, ["S_LN_GDP", "R_LN_GDP", "LN_DIST", "S_POL", "R_POL", "CC"]]
 X_westhoff["S_POL X R_POL"] = X_westhoff["S_POL"] * X_westhoff["R_POL"]
 X_westhoff = X_westhoff.values
-X_srct = np.zeros((df_cart.shape[0], model.p_embeds.weight.shape[1]))
 y = np.empty(df_cart.shape[0])
 
-s_embeds = model.s_embeds.weight.detach().numpy()
-r_embeds = model.r_embeds.weight.detach().numpy()
 for i, row in df_cart.iterrows():
     X_westhoff[i, :] = np.array([
         row["S_LN_GDP"],
@@ -93,36 +86,46 @@ for i, row in df_cart.iterrows():
         row["R_POL"],
         row["CC"],
         row["S_POL"]*row["R_POL"]])
-    X_srct[i, :] = np.concatenate((
-        s_embeds[row["SOURCE_IDX"] + row["TIME"]*model.s_cnt],
-        r_embeds[row["RECEIVER_IDX"] + row["TIME"]*model.r_cnt],
+    for alpha in embeds.keys():
+        embeds[alpha]["X"][i, :] = np.concatenate((
+            embeds[alpha]["s_embeds"][row["SOURCE_IDX"] + row["TIME"]*model.s_cnt],
+            embeds[alpha]["r_embeds"][row["RECEIVER_IDX"] + row["TIME"]*model.r_cnt]))
+
     y[i] = row["LN_TRADE"]
 
 # Randomly select 75% for training a linear regression model, predict on 25% and get MSE
 # Repeat many times with different splits to account for variance in sample size
 trials = int(1000)
-mses_srct = np.zeros(trials)
-mses_westhoff = np.zeros(trials)
-mses_mean = np.zeros(trials)
-reg_srct = LinearRegression()
-reg_westhoff = LinearRegression()
+mses = {}
+for alpha in model_alphas:
+    mses[alpha] = np.zeros(trials)
+mses["westhoff"] = np.zeros(trials)
+mses["baseline_mean"] = np.zeros(trials)
+
+reg = LinearRegression(normalize=True)
 for i in range(trials):
-    train_idxs, test_idxs, _, _ = train_test_split(np.arange(df_cart.shape[0]), y, test_size=0.25, shuffle=True)
-    reg_srct.fit(X_srct[train_idxs], y[train_idxs])
-    reg_westhoff.fit(X_westhoff[train_idxs], y[train_idxs])
-    y_preds_srct = reg_srct.predict(X_srct[test_idxs])
-    y_preds_westhoff = reg_westhoff.predict(X_westhoff[test_idxs])
-    y_preds_mean = np.ones(test_idxs.shape[0])*np.mean(y[train_idxs])
-    mses_srct[i] = mean_squared_error(y_true=y[test_idxs], y_pred=y_preds_srct)
-    mses_westhoff[i] = mean_squared_error(y_true=y[test_idxs], y_pred=y_preds_westhoff)
-    mses_mean[i] = mean_squared_error(y_true=y[test_idxs], y_pred=y_preds_mean)
+    train_idxs, test_idxs, _, _ = train_test_split(
+        np.arange(df_cart.shape[0]), y, test_size=0.25, shuffle=True)
+
+    for alpha in model_alphas:
+        reg.fit(embeds[alpha]["X"][train_idxs], y[train_idxs])
+        y_preds = reg.predict(embeds[alpha]["X"][test_idxs])
+        mses[alpha][i] = mean_squared_error(y_true=y[test_idxs], y_pred=y_preds)
+
+    reg.fit(X_westhoff[train_idxs], y[train_idxs])
+    y_preds = reg.predict(X_westhoff[test_idxs])
+    mses["westhoff"][i] = mean_squared_error(y_true=y[test_idxs], y_pred=y_preds)
+
+    y_preds = np.ones(test_idxs.shape[0])*np.mean(y[train_idxs])
+    mses["baseline_mean"][i] = mean_squared_error(y_true=y[test_idxs], y_pred=y_preds)
 
 # compare with Westveld-Hoff model on same train-test splitting
-print("mean MSE srct: {} | mean MSE westhoff: {} | mean MSE baseline: {}"\
-    .format(np.mean(mses_srct), np.mean(mses_westhoff), np.mean(mses_mean)))
+data = []
+for key, mse in mses.items():
+    print("{} mean MSE: {}".format(key, np.mean(mse)))
+    data.append(go.Histogram(x=mse, name=key))
 
 # Plot histogram of mse's
-data = [go.Histogram(x=mses_srct), go.Histogram(x=mses_westhoff), go.Histogram(x=mses_mean)]
 plotly.offline.plot(data, filename="mse_hist_lin_reg.html")
 
 # # Plot projections onto the line as x and the ln(trade) as y seperately for train and test

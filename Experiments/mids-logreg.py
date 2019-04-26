@@ -13,101 +13,85 @@ import torch
 import plotly
 import plotly.graph_objs as go
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import GridSearchCV, StratifiedKFold
+from sklearn.model_selection import GridSearchCV, StratifiedKFold, train_test_split
 from sklearn.metrics import make_scorer, roc_auc_score
 
+# For testing
+rand_state = 0
 
-# Load cleaned data
+# Load cleaned data and filter down to what exists in OCon
 df_mid = pd.read_csv("../Data/DYDMID3.1/mid-clean.txt", sep="\t")
 df_mid = df_mid.loc[df_mid["IN_ORIG"]]
 
-# load sgns data
+# load model data for model parameters later
 fcp = FullContextProcessor("../Data/OConnor2013/ocon-nicepaths-month-indexed.txt", sep="\t")
 
-# # Load model to use as features
-# model = SRCTModel(s_cnt=len(fcp.df["SOURCE_IDX"].unique()),
-#                   r_cnt=len(fcp.df["RECEIVER_IDX"].unique()),
-#                   p_cnt=len(fcp.df["PRED_IDX"].unique()),
-#                   T=len(fcp.df["TIME"].unique()),
-#                   K_s=100,
-#                   K_r=100,
-#                   K_p=200,)
+# Get train - test split 80/20 
+train_idxs, test_idxs, _, _ = train_test_split(
+    np.arange(df_mid.shape[0]), df_mid["HOST"].values, test_size=0.20, 
+    shuffle=True, random_state=rand_state)
+y = df_mid["HOST"].values
 
-# model.load_state_dict(torch.load(
-#     "K200_lr1.00E+00_lam0.00E+00_alpha1.00E-04_bs32_epochs10.pt",
-#     map_location="cpu"))
+# For each model, do 5-folds cv, use best for eval and record evald ROC_AUC
+model_alphas = ["1.00E-01", "1.00E-02", "1.00E-03", "1.00E-04", "1.00E-05"]
+logreg = LogisticRegression(penalty="l2", solver="saga", max_iter=10000, tol=1e-5)
+results = []
+for alpha in model_alphas:
+    # Load model and gets the embeddings to use as features
+    model = SRCTSoftmaxModel(s_cnt=len(fcp.df["SOURCE_IDX"].unique()),
+                             r_cnt=len(fcp.df["RECEIVER_IDX"].unique()),
+                             p_cnt=len(fcp.df["PRED_IDX"].unique()),
+                             T=len(fcp.df["TIME"].unique()),
+                             K_s=150,
+                             K_r=150,
+                             K_p=300,)
 
-# Load softmax model to use as features
-model = SRCTSoftmaxModel(s_cnt=len(fcp.df["SOURCE_IDX"].unique()), r_cnt=len(fcp.df["RECEIVER_IDX"].unique()),
-                         p_cnt=len(fcp.df["PRED_IDX"].unique()),
-                         T=len(fcp.df["TIME"].unique()),
-                         K_s=150,
-                         K_r=150,
-                         K_p=300,)
+    model.load_state_dict(torch.load(
+        "month_softmax_K300_lr1.00E+00_lam0.00E+00_alpha{}_bs32_epochs50.pt".format(alpha),
+        map_location="cpu"))
+    s_embeds = model.s_embeds.weight.detach().numpy()
+    r_embeds = model.r_embeds.weight.detach().numpy()
 
-model.load_state_dict(torch.load(
-    "month_softmax_K300_lr1.00E+00_lam0.00E+00_alpha5.00E-02_bs32_epochs50.pt",
-    map_location="cpu"))
+    # Create dataset in matrix representation
+    X_train = np.zeros((train_idxs.shape[0], model.p_embeds.weight.shape[1]))
+    y_train = y[train_idxs]
+    for i, row in df_mid.iloc[train_idxs].reset_index(drop=True).iterrows():
+        X_train[i, :] = np.concatenate((
+            s_embeds[row["SOURCE_IDX"] + row["TIME"]*model.s_cnt],
+            r_embeds[row["RECEIVER_IDX"] + row["TIME"]*model.r_cnt]))
 
-# Create dataset in matrix representation
-X = np.zeros((df_mid.shape[0], model.p_embeds.weight.shape[1]))
-y = np.empty(df_mid.shape[0])
-s_embeds = model.s_embeds.weight.detach().cpu().numpy()
-r_embeds = model.r_embeds.weight.detach().cpu().numpy()
+    # Perform 5-fold cv based on roc_auc
+    param_grid = {
+        "C":[1.0/1e-2, 1.0/1e-3, 1.0/1e-4, 1.0/1e-5, 1.0/1e-6, 1.0/1e-7, 1.0/1e-8],
+    }
+    gs = GridSearchCV(estimator=logreg,
+                      param_grid=param_grid,
+                      scoring={"roc_auc":make_scorer(roc_auc_score, needs_threshold=True)},
+                      n_jobs=1,
+                      cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=rand_state),
+                      refit="roc_auc",
+                      verbose=30,
+                      return_train_score=True,)
+    gs.fit(X_train, y_train)
 
-for i, row in enumerate(df_mid.loc[:, ["SOURCE_IDX", "RECEIVER_IDX", "TIME", "HOST"]]\
-    .itertuples(index=False)):
-    X[i, :] = np.concatenate((
-        s_embeds[row[0] + row[2]*model.s_cnt],
-        r_embeds[row[1] + row[2]*model.r_cnt]))
-    y[i] = row[3]
+    # Use best lambda/C to eval on test set
+    X_test = np.zeros((test_idxs.shape[0], model.p_embeds.weight.shape[1]))
+    y_test = y[test_idxs]
+    for i, row in df_mid.iloc[test_idxs].reset_index(drop=True).iterrows():
+        X_test[i, :] = np.concatenate((
+            s_embeds[row["SOURCE_IDX"] + row["TIME"]*model.s_cnt],
+            r_embeds[row["RECEIVER_IDX"] + row["TIME"]*model.r_cnt]))
+    test_score = gs.score(X_test, y_test) 
 
-# Do CV then train and get test ROC
-logreg = LogisticRegression()
+    # Log results
+    results.append({
+        "alpha":alpha,
+        "lambda":1.0/gs.cv_results_["params"][0]["C"],
+        "mean_train_roc_auc":gs.cv_results_["mean_train_roc_auc"][0],
+        "mean_eval_roc_auc":gs.cv_results_["mean_test_roc_auc"][0],
+        "test_roc_auc":test_score,
+    })
 
-param_grid = {
-    "C":[1.0/1e1, 1.0, 1.0/1e-1, 1.0/1e-2, 1.0/1e-3, 1.0/1e-4],
-    "max_iter":[10000],
-    "penalty":["l1"],
-    "solver":["liblinear", "saga"],
-}
-scoring = {
-    "ROC_AUC": make_scorer(roc_auc_score)
-}
-gs = GridSearchCV(estimator=logreg,
-                  param_grid=param_grid,
-                  scoring=scoring,
-                  n_jobs=1,
-                  cv=StratifiedKFold(n_splits=3, shuffle=True, random_state=0),
-                  refit=False,
-                  verbose=30,
-                  return_train_score=True,)
-gs.fit(X, y)
-
-# # Best model is automatically retrained, now get test performance
-# y_pred = gs.predict(X_test)
-# print("test logloss: {} | Acc: {} | Prec: {} | Rec: {} | test F1: {}".\
-#     format(log_loss(y_test, y_pred), 
-#            accuracy_score(y_test, y_pred),
-#            precision_score(y_test, y_pred), 
-#            recall_score(y_test, y_pred),
-#            f1_score(y_test, y_pred)),)
-
-# for i in range(trials):
-#     train_idxs, test_idxs, _, _ = train_test_split(np.arange(df_cart.shape[0]), y, test_size=0.25, shuffle=True)
-#     reg_srct.fit(X_srct[train_idxs], y[train_idxs])
-#     reg_westhoff.fit(X_westhoff[train_idxs], y[train_idxs])
-#     y_preds_srct = reg_srct.predict(X_srct[test_idxs])
-#     y_preds_westhoff = reg_westhoff.predict(X_westhoff[test_idxs])
-#     y_preds_mean = np.ones(test_idxs.shape[0])*np.mean(y[train_idxs])
-#     mses_srct[i] = mean_squared_error(y_true=y[test_idxs], y_pred=y_preds_srct)
-#     mses_westhoff[i] = mean_squared_error(y_true=y[test_idxs], y_pred=y_preds_westhoff)
-#     mses_mean[i] = mean_squared_error(y_true=y[test_idxs], y_pred=y_preds_mean)
-
-# # compare with Westveld-Hoff model on same train-test splitting
-# print("mean MSE srct: {} | mean MSE westhoff: {} | mean MSE baseline: {}"\
-#     .format(np.mean(mses_srct), np.mean(mses_westhoff), np.mean(mses_mean)))
-
-# # Plot histogram of mse's
-# data = [go.Histogram(x=mses_srct), go.Histogram(x=mses_westhoff), go.Histogram(x=mses_mean)]
-# plotly.offline.plot(data, filename="mse_hist_lin_reg.html")
+# Save results as a dataframe
+df_results = pd.DataFrame(results)
+df_results.to_csv("mids-logreg-results.txt", sep="\t", index=False)
