@@ -31,6 +31,7 @@ train_idxs, test_idxs, _, _ = train_test_split(
     np.arange(df_mid.shape[0]), df_mid["HOST"].values, test_size=0.20, 
     shuffle=True, random_state=rand_state)
 y = df_mid["HOST"].values
+print("check 1")
 
 # For each model, do 5-folds cv, use best for eval and record evald ROC_AUC
 model_alphas = ["1.00E-01", "1.00E-02", "1.00E-03", "1.00E-04", "1.00E-05"]
@@ -60,6 +61,7 @@ for alpha in model_alphas:
             s_embeds[row["SOURCE_IDX"] + row["TIME"]*model.s_cnt],
             r_embeds[row["RECEIVER_IDX"] + row["TIME"]*model.r_cnt]))
 
+    print("check 2")
     # Perform 5-fold cv based on roc_auc
     param_grid = {
         "C":[1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8],
@@ -72,6 +74,7 @@ for alpha in model_alphas:
                       refit="roc_auc",
                       verbose=30,
                       return_train_score=True,)
+    print("check 3")
     gs.fit(X_train, y_train)
 
     # Use best lambda/C to eval on test set
