@@ -49,8 +49,8 @@ for alpha in model_alphas:
     model.load_state_dict(torch.load(
         "month_softmax_K300_lr1.00E+00_lam0.00E+00_alpha{}_bs32_epochs50.pt".format(alpha),
         map_location="cpu"))
-    s_embeds = model.s_embeds.weight.detach().numpy()
-    r_embeds = model.r_embeds.weight.detach().numpy()
+    s_embeds = model.s_embeds.weight.detach().cpu().numpy()
+    r_embeds = model.r_embeds.weight.detach().cpu().numpy()
 
     # Create dataset in matrix representation
     X_train = np.zeros((train_idxs.shape[0], model.p_embeds.weight.shape[1]))
