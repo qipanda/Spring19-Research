@@ -34,7 +34,7 @@ y = df_mid["HOST"].values
 
 # For each model, do 5-folds cv, use best for eval and record evald ROC_AUC
 model_alphas = ["1.00E-01", "1.00E-02", "1.00E-03", "1.00E-04", "1.00E-05"]
-logreg = LogisticRegression(penalty="l2", solver="sag", max_iter=1000)
+logreg = LogisticRegression(penalty="l2", solver="lbfgs", max_iter=1000)
 results = []
 for alpha in model_alphas:
     # Load model and gets the embeddings to use as features
