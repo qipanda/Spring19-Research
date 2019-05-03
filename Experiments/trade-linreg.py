@@ -99,8 +99,8 @@ trials = int(1000)
 mses = {}
 for alpha in model_alphas:
     mses[alpha] = np.zeros(trials)
-mses["westhoff"] = np.zeros(trials)
-mses["baseline_mean"] = np.zeros(trials)
+mses["West-Hoff"] = np.zeros(trials)
+mses["Baseline-Mean"] = np.zeros(trials)
 
 reg = LinearRegression(normalize=True)
 for i in range(trials):
@@ -114,30 +114,47 @@ for i in range(trials):
 
     reg.fit(X_westhoff[train_idxs], y[train_idxs])
     y_preds = reg.predict(X_westhoff[test_idxs])
-    mses["westhoff"][i] = mean_squared_error(y_true=y[test_idxs], y_pred=y_preds)
+    mses["West-Hoff"][i] = mean_squared_error(y_true=y[test_idxs], y_pred=y_preds)
 
     y_preds = np.ones(test_idxs.shape[0])*np.mean(y[train_idxs])
-    mses["baseline_mean"][i] = mean_squared_error(y_true=y[test_idxs], y_pred=y_preds)
+    mses["Baseline-Mean"][i] = mean_squared_error(y_true=y[test_idxs], y_pred=y_preds)
 
 # compare with Westveld-Hoff model on same train-test splitting
 data = []
-for key, mse in mses.items():
-    print("{} mean MSE: {}".format(key, np.mean(mse)))
-    data.append(go.Histogram(x=mse, name=key))
+data.append(go.Bar(x=[key for key, _ in mses.items()],
+                   y=[np.mean(mse) for _, mse in mses.items()],
+                   marker=dict(
+                        color=["#1f77b4", "#1f77b4", "#1f77b4",
+                               "#1f77b4", "#1f77b4", "#ff7f0e", "#2ca02c"]),
+                   error_y=dict(
+                        visible=True,
+                        type='data',
+                        array=[np.std(mse) for _, mse in mses.items()]),
+                   ))
 
-# Plot histogram of mse's
-plotly.offline.plot(data, filename="mse_hist_lin_reg.html")
+layout = go.Layout(
+    title="Trade Level Prediction Test Error",
+    xaxis=dict(
+        title="Model",
+        type="category",
+        tickfont=dict(
+            size=14,
+        ),
+    ),
+    yaxis=dict(
+        title="Mean Squared Error (MSE)",
+        showgrid=True,
+    ),
+    font=dict(
+        size=18,
+    )
+)
+# Print results
+for alpha in model_alphas:
+    print("alpha {}: mean MSE: {:.4f}, std MSE: {:.4f}".format(alpha, np.mean(mses[alpha]), np.std(mses[alpha])))
+print("westhoff mean MSE: {:.4f}, std MSE: {:.4f}".format(np.mean(mses["West-Hoff"]), np.std(mses["West-Hoff"])))
+print("mean mean MSE: {:.4f}, std MSE: {:.4f}".format(np.mean(mses["Baseline-Mean"]), np.std(mses["Baseline-Mean"])))
 
-# # Plot projections onto the line as x and the ln(trade) as y seperately for train and test
-# W = reg.coef_
-# X_train_plot = np.linalg.norm(X_train*W, ord=2.0, axis=1)
-# y_train_plot = reg.predict(X_train) - y_train
-# train_trace = go.Scatter(x=X_train_plot, y=y_train_plot, mode="markers", name="train")
-
-# X_test_plot = np.linalg.norm(X_test*W, ord=2.0, axis=1)
-# y_test_plot = y_preds - y_test
-# test_trace = go.Scatter(x=X_test_plot, y=y_test_plot, mode="markers", name="test")
-
-# data = [train_trace, test_trace]
-# plotly.offline.plot(data, filename="projected_lin_reg.html")
-
+# Plot bar graph of mse's
+fig = go.Figure(data=data, layout=layout)
+plotly.io.write_image(fig=fig, file="mse_bar_lin_reg.png", scale=2)
