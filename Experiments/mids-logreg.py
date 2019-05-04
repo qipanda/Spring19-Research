@@ -122,4 +122,4 @@ results.append({
 
 # Save results as a dataframe
 df_results = pd.DataFrame(results)
-df_results.to_csv("mids-logreg-l1-results.txt", sep="\t", index=False)
+df_results.to_csv("mids-logreg-fullinter-l1-results.txt", sep="\t", index=False)
