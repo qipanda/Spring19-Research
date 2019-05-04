@@ -88,7 +88,7 @@ df_cart = df_cart.merge(df_exp, on=["SOURCE", "RECEIVER", "YEAR", "MONTH"], how=
 df_cart.loc[df_cart["HOST"].isna(), "HOST"] = False
 
 # Remove any (s,r) rows where the whole (s,r) has not a single True "HOST"
-df_cart = df_cart.groupby(["SOURCE", "RECEIVER"]).filter(lambda g: g["HOST"].sum() > 0)
+# df_cart = df_cart.groupby(["SOURCE", "RECEIVER"]).filter(lambda g: g["HOST"].sum() > 0)
 
 # Categorize rows as either existing in corpus data
 df_corpus = fcp.df.loc[:, ["SOURCE", "RECEIVER", "TIME"]].drop_duplicates()
