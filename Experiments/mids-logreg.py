@@ -34,7 +34,7 @@ y = df_mid["HOST"].values
 
 # For each model, do 5-folds cv, use best for eval and record evald ROC_AUC
 model_alphas = ["1.00E-01", "1.00E-02", "1.00E-03", "1.00E-04", "1.00E-05"]
-logreg = LogisticRegression(penalty="l1", solver="saga", max_iter=1000)
+logreg = LogisticRegression(penalty="l1", solver="saga", max_iter=2000)
 results = []
 for alpha in model_alphas:
     # Load model and gets the embeddings to use as features
@@ -62,7 +62,7 @@ for alpha in model_alphas:
 
     # Perform 5-fold cv based on roc_auc
     param_grid = {
-        "C":[1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8],
+        "C":[1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9],
     }
     gs = GridSearchCV(estimator=logreg,
                       param_grid=param_grid,

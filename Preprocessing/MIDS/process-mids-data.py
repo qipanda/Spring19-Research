@@ -21,11 +21,20 @@ dict_cow = df_cow.loc[~df_cow["OConAbb"].isna()]\
 
 # Clean the trade data to match OCon data
 hostile_phrases = {"Use of Force", "Interstate War"}
+source_phrases = {"Primary Initiator", "Joiner on Initiator Side"}
+receiver_phrases = {"Primary Target", "Joiner on Target's side"}
 df = pd.io.stata.read_stata("../../Data/DYDMID3.1/dyadic_mid_3.1.dta")
+
+# Make sure namea is a source and nameb is a receiver
+df = df.loc[(df["rolea"].apply(lambda x: x in source_phrases)) \
+          & (df["roleb"].apply(lambda x: x in receiver_phrases))]
+
+# Only take those with hostile levels 4 and above
 df = df.loc[df["hihost"].apply(lambda x: x in hostile_phrases),
     ["namea", "nameb", "strtmnth", "strtyr", "endmnth", "endyear"]]
 df.loc[:, "namea"] = df["namea"].apply(lambda x: dict_cow[x] if x in dict_cow else x)
 df.loc[:, "nameb"] = df["nameb"].apply(lambda x: dict_cow[x] if x in dict_cow else x)
+
 
 # Explode date ranges into all months
 df_exp = pd.DataFrame(columns=["SOURCE", "RECEIVER", "YEAR", "MONTH"])
