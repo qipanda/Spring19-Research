@@ -16,7 +16,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, StratifiedKFold, train_test_split
 from sklearn.metrics import make_scorer, roc_auc_score
 
-# For testing
+# For reproduction
 rand_state = 0
 
 # Load cleaned data and filter down to what exists in OCon
@@ -81,6 +81,7 @@ for alpha in model_alphas:
         X_test[i, :] = np.concatenate((
             s_embeds[row["SOURCE_IDX"] + row["TIME"]*model.s_cnt],
             r_embeds[row["RECEIVER_IDX"] + row["TIME"]*model.r_cnt]))
+
     test_score = gs.score(X_test, y_test) 
     print("alpha: {} | best_C: {} | test_score_roc_auc: {}".format(
         alpha, gs.best_params_["C"], test_score))
@@ -95,6 +96,29 @@ for alpha in model_alphas:
             "best_lambda":1.0/gs.best_params_["C"],
             "test_roc_auc":test_score,
         })
+
+# Train baseline mean within (s,r) model
+baseline_pred_reference = df_mid.loc[train_idxs].\
+                            groupby(["SOURCE_IDX", "RECEIVER_IDX"])["HOST"].\
+                            mean().\
+                            to_dict()
+baseline_pred_default = df_mid.loc[train_idxs]["HOST"].mean()
+
+# Get baseline model prediction and score
+y_baseline_preds = np.array([
+    baseline_pred_reference[(s, r)] if (s, r) in baseline_pred_reference 
+    else baseline_pred_default 
+    for s, r in df_mid.loc[test_idxs].loc[:, ["SOURCE_IDX", "RECEIVER_IDX"]].values])
+
+baseline_test_score = roc_auc_score(y_true=y[test_idxs], y_score=y_baseline_preds)
+results.append({
+    "alpha":"baseline-mean-within-sr",
+    "lam":0,
+    "mean_train_row_auc":0,
+    "mean_eval_roc_auc":0,
+    "best_lambda":0,
+    "test_roc_auc":baseline_test_score
+})
 
 # Save results as a dataframe
 df_results = pd.DataFrame(results)
