@@ -32,10 +32,19 @@ import numpy as np
 
 # Load the data
 fcp = FullContextProcessor(
-    "../Data/OConnor2013/ocon-nicepaths-{}-indexed.txt".format(args.gran), "\t")
+    "../Data/OConnor2013/ocon-nicepaths-extracted.txt", "\t")
+if args.gran == "year":
+    fcp.createYearTimeIdx("DATE", "TIME")
+if args.gran == "month":
+    fcp.createMonthTimeIdx("DATE", "TIME")
 
 # Only include data up to "TIME" t
 fcp.df = fcp.df.loc[fcp.df["TIME"] <= args.timemax]
+
+# Create s-r-p maps
+fcp.createTwoWayMap("SOURCE", True)
+fcp.createTwoWayMap("RECEIVER", True)
+fcp.createTwoWayMap("PRED", True)
 
 # Put data into numpy arrays
 X = fcp.df.loc[:, ["SOURCE_IDX", "RECEIVER_IDX", "TIME"]].values

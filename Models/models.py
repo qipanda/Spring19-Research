@@ -118,7 +118,7 @@ class SRCTClassifier(BaseEstimator, ClassifierMixin):
         self.hist_mod = hist_mod
         self.tensorboard_path = "K{}_lr{:.2E}_lam{:.2E}_alpha{:.2E}_bs{}_epochs{}".format(
             self.K_p, self.lr, self.lam, self.alpha, self.batch_size, self.train_epochs)
-        self.writer = SummaryWriter(log_dir=(self.log_fpath + "/" + self.tensorboard_path))
+        # self.writer = SummaryWriter(log_dir=(self.log_fpath + "/" + self.tensorboard_path)) TODO
 
     def returnModel(self):
         """
