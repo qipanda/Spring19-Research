@@ -14,13 +14,13 @@ import plotly
 import plotly.graph_objs as go
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, StratifiedKFold, train_test_split
-from sklearn.metrics import make_scorer, roc_auc_score
+from sklearn.metrics import make_scorer, roc_auc_score, brier_score_loss
 
 # For reproduction
 rand_state = 0
 
 # Load cleaned data and filter down to what exists in OCon
-df_mid = pd.read_csv("../Data/DYDMID3.1/mid-clean.txt", sep="\t")
+df_mid = pd.read_csv("../Data/DYDMID3.1/mid-clean.txt", sep="\t").sort_values("TIME")
 df_mid = df_mid.loc[df_mid["IN_ORIG"]]
 
 # load model data for model parameters later
@@ -34,7 +34,7 @@ y = df_mid["HOST"].values
 
 # For each model, do 5-folds cv, use best for eval and record evald ROC_AUC
 model_alphas = ["1.00E-01", "1.00E-02", "1.00E-03", "1.00E-04", "1.00E-05"]
-logreg = LogisticRegression(penalty="l1", solver="saga", max_iter=2000)
+logreg = LogisticRegression(penalty="l1", solver="saga", max_iter=3000, class_weight="balanced")
 results = []
 
 for alpha in model_alphas:
@@ -67,7 +67,7 @@ for alpha in model_alphas:
     }
     gs = GridSearchCV(estimator=logreg,
                       param_grid=param_grid,
-                      scoring={"roc_auc":make_scorer(roc_auc_score, needs_threshold=True)},
+                      scoring=["roc_auc", "brier_score_loss"],
                       n_jobs=-1,
                       cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=rand_state),
                       refit="roc_auc",
@@ -84,17 +84,21 @@ for alpha in model_alphas:
             r_embeds[row["RECEIVER_IDX"] + row["TIME"]*model.r_cnt]))
 
     test_score = gs.score(X_test, y_test) 
-    print("alpha: {} | best_C: {} | test_score_roc_auc: {}".format(
-        alpha, gs.best_params_["C"], test_score))
+    test_brier = brier_score_loss(y_true=y_test, y_prob=gs.predict_proba(X_test)[:, 1])
+    print("alpha: {} | best_C: {} | test_brier: {} | test_score_roc_auc: {}".format(
+        alpha, gs.best_params_["C"], test_brier, test_score))
 
     # Log results
     for i in range(len(param_grid["C"])):
         results.append({
             "alpha":alpha,
             "lam":1.0/gs.cv_results_["params"][i]["C"],
+            "best_lambda":1.0/gs.best_params_["C"],
+            "mean_train_brier_score_loss":-gs.cv_results_["mean_train_brier_score_loss"][i],
+            "mean_eval_brier_score_loss":-gs.cv_results_["mean_test_brier_score_loss"][i],
+            "test_brier_score_loss":test_brier,
             "mean_train_roc_auc":gs.cv_results_["mean_train_roc_auc"][i],
             "mean_eval_roc_auc":gs.cv_results_["mean_test_roc_auc"][i],
-            "best_lambda":1.0/gs.best_params_["C"],
             "test_roc_auc":test_score,
         })
 
@@ -112,15 +116,19 @@ y_baseline_preds = np.array([
     for s, r in df_mid.iloc[test_idxs].loc[:, ["SOURCE_IDX", "RECEIVER_IDX"]].values])
 
 baseline_test_score = roc_auc_score(y_true=y[test_idxs], y_score=y_baseline_preds)
+baseline_brier = brier_score_loss(y_true=y_test, y_prob=y_baseline_preds)
 results.append({
     "alpha":"baseline-mean-within-sr",
     "lam":0,
-    "mean_train_row_auc":0,
-    "mean_eval_roc_auc":0,
     "best_lambda":0,
-    "test_roc_auc":baseline_test_score
+    "mean_train_brier_score_loss":0,
+    "mean_eval_brier_score_loss":0,
+    "test_brier_score_loss":baseline_brier,
+    "mean_train_roc_auc":0,
+    "mean_eval_roc_auc":0,
+    "test_roc_auc":baseline_test_score,
 })
 
 # Save results as a dataframe
 df_results = pd.DataFrame(results)
-df_results.to_csv("mids-logreg-inorig-l1-results.txt", sep="\t", index=False)
+df_results.to_csv("mids-logreg-inorig-balanced-l1-results.txt", sep="\t", index=False)
