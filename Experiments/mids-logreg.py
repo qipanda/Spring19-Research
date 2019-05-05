@@ -99,17 +99,17 @@ for alpha in model_alphas:
         })
 
 # Train baseline mean within (s,r) model
-baseline_pred_reference = df_mid.loc[train_idxs].\
+baseline_pred_reference = df_mid.iloc[train_idxs].\
                             groupby(["SOURCE_IDX", "RECEIVER_IDX"])["HOST"].\
                             mean().\
                             to_dict()
-baseline_pred_default = df_mid.loc[train_idxs]["HOST"].mean()
+baseline_pred_default = df_mid.iloc[train_idxs]["HOST"].mean()
 
 # Get baseline model prediction and score
 y_baseline_preds = np.array([
     baseline_pred_reference[(s, r)] if (s, r) in baseline_pred_reference 
     else baseline_pred_default 
-    for s, r in df_mid.loc[test_idxs].loc[:, ["SOURCE_IDX", "RECEIVER_IDX"]].values])
+    for s, r in df_mid.iloc[test_idxs].loc[:, ["SOURCE_IDX", "RECEIVER_IDX"]].values])
 
 baseline_test_score = roc_auc_score(y_true=y[test_idxs], y_score=y_baseline_preds)
 results.append({
