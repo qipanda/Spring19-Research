@@ -52,10 +52,10 @@ softmax_class = SRCTSoftmaxClassifier(s_cnt=len(fcp.df["SOURCE"].unique()),
                                     batch_size=args.batch_size,
                                     train_epochs=args.train_epochs,
                                     log_fpath=args.log_fpath + "/" + args.gran + \
-                                        "/" + args.timemax)
+                                        "/" + str(args.timemax))
 softmax_class.fit(X, y)
 
 # Save best estimator
-torch.save(softmax_class.model_.state_dict(), "{}_{}_".format(args.timemax, args.gran) + softmax_class.tensorboard_path + ".pt")
+torch.save(softmax_class.model_.state_dict(), "{}_{}_".format(str(args.timemax), args.gran) + softmax_class.tensorboard_path + ".pt")
 
 # TODO Create torch embeddings?
