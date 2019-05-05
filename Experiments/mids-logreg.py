@@ -21,7 +21,7 @@ rand_state = 0
 
 # Load cleaned data and filter down to what exists in OCon
 df_mid = pd.read_csv("../Data/DYDMID3.1/mid-clean.txt", sep="\t")
-# df_mid = df_mid.loc[df_mid["IN_ORIG"]]
+df_mid = df_mid.loc[df_mid["IN_ORIG"]]
 
 # load model data for model parameters later
 fcp = FullContextProcessor("../Data/OConnor2013/ocon-nicepaths-month-indexed.txt", sep="\t")
@@ -36,6 +36,7 @@ y = df_mid["HOST"].values
 model_alphas = ["1.00E-01", "1.00E-02", "1.00E-03", "1.00E-04", "1.00E-05"]
 logreg = LogisticRegression(penalty="l1", solver="saga", max_iter=2000)
 results = []
+
 for alpha in model_alphas:
     # Load model and gets the embeddings to use as features
     model = SRCTSoftmaxModel(s_cnt=len(fcp.df["SOURCE_IDX"].unique()),
@@ -122,4 +123,4 @@ results.append({
 
 # Save results as a dataframe
 df_results = pd.DataFrame(results)
-df_results.to_csv("mids-logreg-fullinter-l1-results.txt", sep="\t", index=False)
+df_results.to_csv("mids-logreg-inorig-l1-results.txt", sep="\t", index=False)
