@@ -90,10 +90,10 @@ df_cart.loc[df_cart["HOST"].isna(), "HOST"] = False
 # Remove any (s,r) rows where the whole (s,r) has not a single True "HOST"
 # df_cart = df_cart.groupby(["SOURCE", "RECEIVER"]).filter(lambda g: g["HOST"].sum() > 0)
 
-# Categorize rows as either existing in corpus data
-df_corpus = fcp.df.loc[:, ["SOURCE", "RECEIVER", "TIME"]].drop_duplicates()
+# Categorize rows as (s,r) tuples that either exist in corpus data or not
+df_corpus = fcp.df.loc[:, ["SOURCE", "RECEIVER"]].drop_duplicates()
 df_corpus["IN_ORIG"] = True
-df_cart = df_cart.merge(df_corpus, on=["SOURCE", "RECEIVER", "TIME"], how="left")
+df_cart = df_cart.merge(df_corpus, on=["SOURCE", "RECEIVER"], how="left")
 df_cart.loc[df_cart["IN_ORIG"].isna(), "IN_ORIG"] = False
 
 # Save for later use
