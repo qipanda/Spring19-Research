@@ -116,7 +116,7 @@ y_baseline_preds = np.array([
     for s, r in df_mid.iloc[test_idxs].loc[:, ["SOURCE_IDX", "RECEIVER_IDX"]].values])
 
 baseline_test_score = roc_auc_score(y_true=y[test_idxs], y_score=y_baseline_preds)
-baseline_brier = brier_score_loss(y_true=y_test, y_prob=y_baseline_preds)
+baseline_brier = brier_score_loss(y_true=y[test_idxs], y_prob=y_baseline_preds)
 results.append({
     "alpha":"baseline-mean-within-sr",
     "lam":0,
