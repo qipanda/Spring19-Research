@@ -33,7 +33,7 @@ model = SRCTSoftmaxModel(s_cnt=len(fcp.df["SOURCE_IDX"].unique()),
                           K_p=300,)
 
 model.load_state_dict(torch.load(
-    "month_softmax_K300_lr1.00E+00_lam0.00E+00_alpha5.00E-02_bs32_epochs50.pt",
+    "month_softmax_K300_lr1.00E+00_lam0.00E+00_alpha1.00E-01_bs32_epochs50.pt",
     map_location="cpu"))
 
 s_embeds = model.s_embeds.weight.detach().numpy()
@@ -81,6 +81,13 @@ app.layout = html.Div(children=[
                     data=[],
                     layout=go.Layout(
                         showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            y=-0.2,
+                            font=dict(
+                                size=16,
+                            )   
+                        ),
                         yaxis=dict(
                             showgrid=True,
                             showticklabels=True,
@@ -94,7 +101,7 @@ app.layout = html.Div(children=[
                 figure=go.Figure(
                     data=[],
                     layout=go.Layout(
-                        showlegend=True,
+                        showlegend=False,
                         yaxis=dict(
                             showgrid=True,
                             showticklabels=True,
@@ -288,11 +295,30 @@ def update_figure(top_ts: int, rand_ts: int, man_ts: int,
         data=prob_data,
         layout=go.Layout(
             showlegend=True,
+            legend=dict(
+                orientation="h",
+                y=-0.2,
+                font=dict(
+                    size=16,
+                )   
+            ),
             xaxis=dict(
-                title="Date"
+                title="Date",
+                titlefont=dict(
+                    size=16
+                ),
+                tickfont=dict(
+                    size=12
+                ),
             ),
             yaxis=dict(
                 title="Model Prob Pr(p|s,r,t)",
+                titlefont=dict(
+                    size=16
+                ),
+                tickfont=dict(
+                    size=12
+                ),
                 showgrid=True,
                 showticklabels=True,
                 range=prob_y_range,
@@ -303,12 +329,24 @@ def update_figure(top_ts: int, rand_ts: int, man_ts: int,
     freq_figure =  go.Figure(
         data=freq_data,
         layout=go.Layout(
-            showlegend=True,
+            showlegend=False,
             xaxis=dict(
-                title="Date"
+                title="Date",
+                titlefont=dict(
+                    size=16
+                ),
+                tickfont=dict(
+                    size=12
+                ),
             ),
             yaxis=dict(
                 title="Frequency in News",
+                titlefont=dict(
+                    size=16
+                ),
+                tickfont=dict(
+                    size=12
+                ),
                 showgrid=True,
                 showticklabels=True
             ),
